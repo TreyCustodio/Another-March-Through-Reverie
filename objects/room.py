@@ -3,14 +3,14 @@ import os
 
 from pygame import Surface
 
-from . import Player, Drawable, TextManager, EventManager
+from . import Player, Drawable, TextManager, Interactable
 from globals import SCREEN_SIZE, UPSCALED, SCALE_FACTOR, vec
-from UI import SpriteManager
+from UI import SpriteManager, AudioManager, EventManager
 
 SM = SpriteManager.getInstance()
 TM = TextManager.getInstance()
 EM = EventManager.getInstance()
-
+AM = AudioManager.getInstance()
 
 class Room(object):
     def __init__(self):
@@ -18,6 +18,11 @@ class Room(object):
         self.player = Player()
         self.player.set_position(vec(UPSCALED[0] // 2 - self.player.get_width() // 2, UPSCALED[1] - UPSCALED[1] // 4 - self.player.get_height()))
         
+        #   BGM #
+        self.bgm = "01"
+        self.bgm_volume = 2
+        self.playing_bgm = False
+
         #   States  #
         self.speaking = False # in dialogue
 
@@ -44,6 +49,11 @@ class Room(object):
             
         Drawable.updateOffset(self.player, self.size)
 
+        #   Lists of objects in the room    #
+        self.npcs = [
+            Interactable(vec(self.player.position[0] + 64, self.player.position[1]))
+        ]
+
     def draw(self, drawSurf):
         for b in self.background:
             b.draw(drawSurf)
@@ -59,8 +69,15 @@ class Room(object):
         bg.fill((0,0,0))
         drawSurf.blit(bg, vec(0, SCREEN_SIZE[1] // 2))
 
+
+        #   Npcs    #
+        for n in self.npcs:
+            n.draw(drawSurf)
+
         #   Player  #
         self.player.draw(drawSurf)
+
+        #   Enemies #
         
         #   Foreground  #
         for f in self.foreground:
@@ -76,20 +93,39 @@ class Room(object):
     def handle_events(self):
         if self.speaking:
             TM.handle_events()
-
         else:
+            #   Test Dialogue   #
             if EM.perform_action('space'):
                 txt = "Greetings.&&\nWelcome to reverie.$$It's been a while,\nhuh?$$Today I've got a pocket\nfull of chimp change.$$Glorious day."
-                self.display_text(txt)
-            
+                self.display_text(txt, row=0)
+
+            #   Interact with an object #
+            elif EM.is_active('interact'):
+                #   Check if the player can interact with any objects
+                for n in self.npcs:
+                    if self.player.get_collision_rect().colliderect(n.get_interaction_rect()):
+                        self.display_text(n.get_text(), n.get_box())
+                        EM.deactivate('interact')
+                        return
+                self.player.handle_events()
+
+            #   Have the player handle events   #
             else:
                 self.player.handle_events()
     
-    def display_text(self, text="Hello", flag = 0):
+    def display_text(self, text="Hello", flag = 0, row = 0):
+        self.player.set_idle()
         self.speaking = True
-        TM.init(text, flag)
+        TM.init(text, flag, row=row)
     
+    def play_bgm(self):
+        AM.play_ost(self.bgm, self.bgm_volume)
+        self.playing_bgm = True
+
     def update(self, seconds):
+        if not self.playing_bgm:
+            self.play_bgm()
+
         self.player.update(seconds)
         Drawable.updateOffset(self.player, self.size)
 

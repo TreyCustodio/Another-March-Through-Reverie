@@ -1,6 +1,6 @@
 import os
 
-from pygame import font
+from pygame import font, Rect
 
 from globals import vec, GRAVITY, UPSCALED
 from UI import EventManager, AudioManager, SpriteManager
@@ -82,6 +82,9 @@ class Player(Drawable):
         #   Start BGM   #
         AM.play_ost("HS")
 
+    def get_collision_rect(self):
+        return Rect(self.position, (self.get_width(), self.get_height()))
+        
     def draw(self, drawSurf):
         if self.state == 'idle':
             pass
@@ -131,6 +134,8 @@ class Player(Drawable):
         img = font.Font(os.path.join("UI", "fonts", 'PressStart2P.ttf'), 16).render("Velocity: " + str(velocity), False, (255,255,255), (0,0,0))
         drawSurf.blit(img, vec(self.position[0] + self.get_width() // 2 - img.get_width() // 2, self.position[1] - img.get_height() - 8) - Drawable.CAMERA_OFFSET)
         
+
+        
         super().draw(drawSurf)
 
 
@@ -171,7 +176,6 @@ class Player(Drawable):
             
         elif direction == 'right':
             self.set_state('idle_right')
-
 
         self.idle = True
 
@@ -257,7 +261,8 @@ class Player(Drawable):
                 if self.airborn:
                     if not self.boosting:
                         #   Boost (1st upgrade)   #
-                        if self.vel[0] <= 0:
+                        if self.state == "jumping_left":
+                        # if self.vel[0] <= 0:
                             self.vel[0] = -self.boost_force
 
                         else:
@@ -271,10 +276,10 @@ class Player(Drawable):
                     self.airborn = True
                     self.gaining = True
 
-                    if self.state == 'walking_left':
+                    if self.state == 'walking_left' or self.state == 'idle_left':
                         self.set_state('jumping_left')
 
-                    elif self.state == 'walking_right':
+                    elif self.state == 'walking_right' or self.state == 'idle_right':
                         self.set_state('jumping_right')
                     
                     else:
@@ -380,13 +385,20 @@ class Player(Drawable):
         
 
     def stop(self, seconds):
-        #   Decelerate to 0 and stay there
+        #   Decelerate to 0 and stay there  #
+        #   Facing Right
         if self.vel[0] > 0:
             self.vel[0] -= (self.acceleration * self.weight) * seconds
             if self.vel[0] < 0:
                 self.vel[0] = 0
+                if self.state == "walking_right":
+                    self.set_idle("right")
+        
+        #   Facing Left
         else:
             self.vel[0] += (self.acceleration * self.weight) * seconds
             if self.vel[0] > 0:
                 self.vel[0] = 0
+                if self.state == "walking_left":
+                    self.set_idle("left")
         

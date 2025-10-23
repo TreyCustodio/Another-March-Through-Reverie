@@ -50,3 +50,8 @@ class Drawable(object):
             self.image = pygame.transform.scale2x(self.image)
         else:
             self.image = pygame.transform.scale(self.image, factor)
+
+class StaticImage(Drawable):
+    def __init__(self, position, image):
+        self.position = position
+        self.image = image

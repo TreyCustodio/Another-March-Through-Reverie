@@ -48,6 +48,7 @@ class DisplayManager(object):
             self.display_int = 0
             self.title_timer = 0.0
             self.title_wait = 0.7
+            self.fps = 0.0
 
             #   Currently loaded room   #
             self.room = None
@@ -71,14 +72,21 @@ class DisplayManager(object):
 
             #   Fading  #
             self.draw_black(drawSurf)
+
+            #   FPS #
+            self.draw_fps(drawSurf)
+
             return
         
-        def draw_fps(self, drawSurf, fps):
+        def draw_fps(self, drawSurf):
             """Display the fps"""
             fnt = font.Font(os.path.join("UI", "fonts", 'PressStart2P.ttf'), 16)
-            img = fnt.render(str(round(fps, 2)), False, (255, 255, 255), (0,0,0))
-            drawSurf.blit(img, list(map(int, vec(2,2) - Drawable.CAMERA_OFFSET)))
-            
+            img = fnt.render(str(round(self.fps, 2)), False, (255, 255, 255), (0,0,0))
+            drawSurf.blit(img, list(map(int, vec(2,2))))
+        
+        def update_fps(self, fps):
+            self.fps = fps
+
         def draw_object(self, drawSurf, index=0):
             """Draw the object at the specified index in display_objects"""
             drawSurf.blit(self.display_objects[index][0], self.display_objects[index][1])
@@ -91,7 +99,7 @@ class DisplayManager(object):
 
             #   "Another March Through Reverie" #
             #   Set the font
-            fnt = font.Font(os.path.join("UI", "fonts", 'PressStart2P.ttf'), 32)
+            fnt = font.Font(os.path.join("UI", "fonts", 'PressStart2P.ttf'), 24)
 
             #   Another March (White)
             text_surface = fnt.render('Another March', True, (255, 254, 184))
@@ -266,9 +274,6 @@ class DisplayManager(object):
                     #   Wait a couple of seconds before playing music   #
 
                     if self.title_timer >= self.title_wait:
-                        if not AM.bgm_channel.get_busy():
-                            AM.play_ost("01")
-                    
                         #   Fade yellow text in and out for a glow effect
                         #   o[1] and o[3] = yellow
                         o = self.display_objects

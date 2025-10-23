@@ -2,6 +2,16 @@ from globals import UPSCALED, vec
 from pygame import Surface, SRCALPHA
 
 
+class Static(Surface):
+    def __init__(self, surface):
+        super().__init__(UPSCALED, SRCALPHA)
+        self.image = surface
+        if surface:
+            self.blit(surface, vec(0,0))
+
+    def update(self, seconds):
+        return
+    
 class Fading(Surface):
     """A fadeable surface object"""
     def __init__(self, surface = None, d_a = 1, transparent = True):

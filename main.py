@@ -87,7 +87,7 @@ while RUNNING:
             frame_count = 0
             start_time = time.time()
 
-        display_manager.draw_fps(drawSurface, fps)
+        display_manager.update_fps(fps)
 
         #   Turn music low/off
-        AM.bgm_channel.set_volume(0.01)
+        # AM.bgm_channel.set_volume(0.0)
