@@ -43,6 +43,7 @@ class SpriteManager(object):
 
          #  Menu Icons  #
          "pointer.png": (33,16),
+         'triangle.png': (32, 16),
 
          #  Player   #
          'samus.png': (32, 40),

@@ -14,7 +14,7 @@ class Drawable(object):
         objSize = trackingObject.get_size()
         objPos = trackingObject.position
         
-        offset = objPos + (objSize // 2) - (SCREEN_SIZE // 2)
+        offset = vec(objPos[0], objPos[1]) + (objSize // 2) - (SCREEN_SIZE // 2)
         
         for i in range(2):
             offset[i] = int(max(0,
@@ -51,6 +51,10 @@ class Drawable(object):
         else:
             self.image = pygame.transform.scale(self.image, factor)
 
+    #   Abstract Method #
+    def update(self, seconds):
+        return
+    
 class StaticImage(Drawable):
     def __init__(self, position, image):
         self.position = position

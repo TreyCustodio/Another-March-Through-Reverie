@@ -65,7 +65,7 @@ class Player(Drawable):
         self.max_speed = 600
         self.weight = 15
 
-        self.acceleration = 120
+        self.acceleration = 60
         self.boost_deceleration = 10
         self.jump_force = -200
         self.jump_force_max = -400
@@ -79,8 +79,10 @@ class Player(Drawable):
         self.idle = True
         self.crouching = True
 
-        #   Start BGM   #
-        AM.play_ost("HS")
+        #   Camera  #
+        self.camera = Drawable(vec(0,0))
+        self.camera_direction = 0 # 0 -> left; 1 -> right
+        self.camera_offset = 0
 
     def get_collision_rect(self):
         return Rect(self.position, (self.get_width(), self.get_height()))
@@ -298,17 +300,8 @@ class Player(Drawable):
 
         return
     
-    def update(self, seconds):
-        #   Update Animation    #
-        if self.animation_timer >= (1/self.get_fps()):
-            self.frame += 1
-            self.frame %= self.get_num_frames()
-            self.animation_timer = 0.0
-            self.set_image()
-        else:
-            self.animation_timer += seconds
-
-        #   Update Physics  #
+    def update_movement(self, seconds):
+        
         #   v_new = (v_old + acceleration) * seconds
 
         #   This code would work for a slope
@@ -339,6 +332,9 @@ class Player(Drawable):
                 else:
                     self.set_state('idle')
 
+                #   Deactivate the interact button
+                EM.deactivate('interact')
+                
             #   Otherwise enforce gravity
             else:
                 self.vel[1] += GRAVITY * seconds
@@ -359,6 +355,11 @@ class Player(Drawable):
             
 
         self.position += self.vel*seconds
+
+        if self.camera_direction == 0:
+            self.camera.set_position(vec(self.position[0] + self.camera_offset, self.position[1]))
+        elif self.camera_direction == 1:
+            self.camera.set_position(vec(self.position[0] - self.camera_offset, self.position[1]))
         return
     
     def accel(self, seconds):
@@ -402,3 +403,15 @@ class Player(Drawable):
                 if self.state == "walking_left":
                     self.set_idle("left")
         
+    def update(self, seconds):
+        #   Update Animation    #
+        if self.animation_timer >= (1/self.get_fps()):
+            self.frame += 1
+            self.frame %= self.get_num_frames()
+            self.animation_timer = 0.0
+            self.set_image()
+        else:
+            self.animation_timer += seconds
+
+        #   Update Physics  #
+        self.update_movement(seconds)

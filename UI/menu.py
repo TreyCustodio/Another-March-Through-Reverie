@@ -20,6 +20,7 @@ class Title(object):
     This class functions as the engine for the title screen.
     """
     def __init__(self):
+        
         font.init()
 
         #   Images to draw #
@@ -63,6 +64,9 @@ class Title(object):
         self.shadows.append([Static(quit_shadow), vec(UPSCALED[0] // 2 - text_surface.get_width() //2, (UPSCALED[1] // 2 + (text_surface.get_height()) * 3) - 16) - shadow_offset])
 
     def initialize(self):
+        #   Play the title theme    #
+        AM.play_ost("01")
+
         #   Initialize the pointer  #
         self.pointer = Cursor(vec(0,0), "pointer.png")
         self.pointer.scale_image()

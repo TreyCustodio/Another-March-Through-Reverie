@@ -1,4 +1,4 @@
-from pygame import Rect, draw
+from pygame import Rect, Surface, draw
 
 from .import Drawable
 
@@ -11,7 +11,7 @@ class Interactable(Drawable):
         self.interaction_rect = Rect(self.position, (self.image.get_width(), self.image.get_height()))
 
         #   Text data   #
-        self.text = "Fuck off"
+        self.text = "Weegee time."
         self.box = 1
 
         #   Animation Data  #
@@ -29,8 +29,10 @@ class Interactable(Drawable):
         return self.text
     
     def draw(self, drawSurf):
+        #   Draw the interaction Rect   #
+        surf = Surface((self.interaction_rect.w, self.interaction_rect.h))
+        surf.fill((20,120,255))
+        drawSurf.blit(surf, self.position - Drawable.CAMERA_OFFSET)
+
         #   Draw the sprite #
         super().draw(drawSurf)
-
-        #   Draw the interaction rect   #
-        draw.rect(drawSurf, (20,120,255), self.interaction_rect, width=1)

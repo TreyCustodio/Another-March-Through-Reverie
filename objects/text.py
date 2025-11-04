@@ -1,7 +1,7 @@
 from pygame import Surface, font, SRCALPHA, transform
 import os
 
-from . import Player, Drawable
+from . import Player, Drawable, Triangle, TextShadow
 from globals import SCREEN_SIZE, UPSCALED, SCALE_FACTOR, vec
 from UI import SpriteManager, AudioManager, EventManager
 
@@ -58,6 +58,10 @@ class TextManager(object):
             self.row = 0
             self.num_frames = 3
 
+            #   Other display Images    #
+            self.triangle = None
+            self.shadow = None
+
         def init(self, text: str, flag: int,
                  fnt = os.path.join("UI", "fonts", 'OpenSans-Regular.ttf'), size=24,
                  row=0
@@ -75,6 +79,8 @@ class TextManager(object):
             self.type = flag
             self.font = font.Font(fnt, size)
             self.set_box()
+            self.triangle = Triangle()
+            self.shadow = TextShadow()
 
 
         def is_finished(self) -> bool:
@@ -125,6 +131,12 @@ class TextManager(object):
 
         def draw(self, drawSurf):
             drawSurf.blit(self.display_surface, self.position)
+
+            if self.waiting:
+                drawSurf.blit(self.triangle, self.triangle.position)
+            
+            else:
+                drawSurf.blit(self.shadow, self.position + self.shadow.position)
             return
         
         def handle_events(self):
@@ -233,6 +245,7 @@ class TextManager(object):
             
             #  Set the char position
             self.char_pos[0] += char_image.get_width() + self.char_space
+            self.shadow.set_position((self.char_pos[0] + self.char_space, self.char_pos[1]))
 
             
 
@@ -244,6 +257,8 @@ class TextManager(object):
                 if self.x_scale >= 480:
                     self.opening = False
                     self.x_scale = 480
+                    self.triangle.set_position(vec(self.position[0] + self.display_surface.get_width() // 2 - self.triangle.get_width() // 2, self.position[1] + self.display_surface.get_height() - self.triangle.get_height()))
+
                 self.set_box()
                 x = UPSCALED[0] // 2 - self.display_surface.get_width() // 2
                 y = 32
@@ -253,7 +268,7 @@ class TextManager(object):
             #   Closing box Animation   #
             elif self.closing:
                 #   Each frame, upscale the x axis
-                self.x_scale -= 20
+                self.x_scale -= 30
                 if self.x_scale <= 1:
                     self.opening = False
                     self.x_scale = 1
@@ -274,6 +289,7 @@ class TextManager(object):
 
             #   Wait for input  #
             if self.waiting or self.finished:
+                self.triangle.update(seconds)
                 return
             
             #   Display a char every 1/(chars per second) #

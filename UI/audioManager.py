@@ -11,8 +11,25 @@ import pygame
 import os
 
 class Track(object):
-    """Represents a Track that can have an intro/outro and that can be looped a number of times"""
+        """Represents an ost track"""
+        def __init__(self, intro, main, drums, outro=None):
+            self.intro = intro
+            self.main = main
+            self.drums = drums
+            self.outro = outro
 
+        def get_intro(self):
+            return self.intro
+        
+        def get_main(self):
+            return self.main
+        
+        def get_drums(self):
+            return self.drums
+        
+        def get_outro(self):
+            return self.outro
+        
 class AudioManager(object):
     """A singleton factory class to create and store sounds and music on demand."""
     
@@ -25,6 +42,10 @@ class AudioManager(object):
         
         return cls._INSTANCE
     
+    
+
+
+
     class _AM(object):
         """An internal AudioManager class to contain the actual code."""
         
@@ -35,20 +56,24 @@ class AudioManager(object):
         _VOICE_FOLDER = "voices"
         
         def __init__(self):
-            self.ost = {} # "track number": [intro, loop, end]
+            self.ost = {} # "track number": [intro, loop, drums]
             self.BGMs = {}
             self.dict = {}
 
             #   Initialize pygame's mixer
             pygame.mixer.init()
 
-            #   Reserve Channel 5 for bgm    #
-            pygame.mixer.set_reserved(5)
-            self.bgm_channel = pygame.mixer.Channel(5)
-
             #   Reserve Channel 4 for menu sfx    #
             pygame.mixer.set_reserved(4)
             self.menu_channel = pygame.mixer.Channel(4)
+
+            #   Reserve Channel 5 for bgm melody    #
+            pygame.mixer.set_reserved(5)
+            self.bgm_channel = pygame.mixer.Channel(5)
+
+            #   Reserve Channel 6 for bgm drums    #
+            pygame.mixer.set_reserved(6)
+            self.drum_channel = pygame.mixer.Channel(6)
 
             #   Booleans    #
             self.currently_playing = False # True if currently playing a track
@@ -62,16 +87,19 @@ class AudioManager(object):
             if name not in self.ost:
                 self._load_ost(name, has_intro, has_outro)
 
-            self.bgm_channel.set_volume(volume)
-
             if has_intro:
                 self.playing_intro = True
                 self.currently_playing = name
-                
-                return self.bgm_channel.play(self.ost[name][0], 0, fade_ms=fade_in)
+                track = self.ost[name]
+                return self.bgm_channel.play(track.get_intro(), 0, fade_ms=fade_in)
+            
             else:
                 self.currently_playing = name
-                return self.bgm_channel.play(self.ost[name][1], -1, fade_ms=fade_in)
+                track = self.ost[name]
+                self.drum_channel.play(track.get_drums(), -1, fade_ms=fade_in)
+                self.bgm_channel.play(track.get_main(), -1, fade_ms=fade_in)
+                return
+
 
 
         def playBGM(self, name):
@@ -101,7 +129,7 @@ class AudioManager(object):
 
             return self.menu_channel.play(self.dict[name], loops)
         
-        def playVoice(self, name, loops=0):
+        def play_voice(self, name, loops=0):
             """
             Play and load a voice file from the voice directory
             """
@@ -143,10 +171,15 @@ class AudioManager(object):
             else:
                 outro = None
 
-            name = fullname + "_loop.wav"
-            loop = pygame.mixer.Sound(name)
+            #   Add drums
+            name = fullname + "_drums.wav"
+            drums = pygame.mixer.Sound(name)
 
-            self.ost[track_number] = [intro, loop, outro]
+            #   Add main
+            name = fullname + "_main.wav"
+            main = pygame.mixer.Sound(name)
+
+            self.ost[track_number] = Track(intro, main, drums, outro)
 
         def _loadVoice(self, name):
             """

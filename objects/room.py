@@ -12,14 +12,26 @@ TM = TextManager.getInstance()
 EM = EventManager.getInstance()
 AM = AudioManager.getInstance()
 
+class Tile(Drawable):
+    """Basic tile. No Collsion"""
+    def __init__(self, position, file_name, offset, size = vec(16,16), property = 0):
+        self.image = SM.getSprite(os.path.join("tiles", file_name), offset)
+        self.position = position
+        self.size = size
+        self.property = property
+
+    def draw(self, drawSurf):
+        drawSurf.blit(self.image, list(map(int, self.position - Drawable.CAMERA_OFFSET)))
+
 class Room(object):
     def __init__(self):
         self.size = vec(UPSCALED[0] * 20, UPSCALED[1])
         self.player = Player()
+        self.floor = UPSCALED[1] - UPSCALED[1] // 4
         self.player.set_position(vec(UPSCALED[0] // 2 - self.player.get_width() // 2, UPSCALED[1] - UPSCALED[1] // 4 - self.player.get_height()))
         
         #   BGM #
-        self.bgm = "01"
+        self.bgm = "02"
         self.bgm_volume = 2
         self.playing_bgm = False
 
@@ -51,8 +63,26 @@ class Room(object):
 
         #   Lists of objects in the room    #
         self.npcs = [
-            Interactable(vec(self.player.position[0] + 64, self.player.position[1]))
+            Interactable(vec(self.player.position[0] + 64, self.floor))
         ]
+        self.npcs[0].position[1] -= self.npcs[0].get_height()
+
+        #   Camera  #
+        self.camera = Drawable(vec(0,0))
+
+        #   Tiles   #
+        self.tiles = []
+
+        for x in range(0, int(self.size[0]), 16):
+            for y in range(int(self.floor) + 16, int(self.size[1]), 16):
+                self.tiles += [
+                    Tile(vec(x, y), "mid.png", (0,0))
+                ]
+
+            self.tiles += [
+                Tile(vec(x, self.floor-16), "mid.png", (2,0)),
+                Tile(vec(x, self.floor), "mid.png", (2,1))
+                ]
 
     def draw(self, drawSurf):
         for b in self.background:
@@ -86,6 +116,9 @@ class Room(object):
         fg.fill((0,200,0))
         drawSurf.blit(fg, vec(0, SCREEN_SIZE[1] - SCREEN_SIZE[1] // 4))
 
+        for t in self.tiles:
+            t.draw(drawSurf)
+
         #   Dialogue    #
         if self.speaking:
             TM.draw(drawSurf)
@@ -100,7 +133,7 @@ class Room(object):
                 self.display_text(txt, row=0)
 
             #   Interact with an object #
-            elif EM.is_active('interact'):
+            elif EM.is_active('interact') and not self.player.airborn:
                 #   Check if the player can interact with any objects
                 for n in self.npcs:
                     if self.player.get_collision_rect().colliderect(n.get_interaction_rect()):
@@ -119,15 +152,16 @@ class Room(object):
         TM.init(text, flag, row=row)
     
     def play_bgm(self):
-        AM.play_ost(self.bgm, self.bgm_volume)
+        AM.play_ost(self.bgm, volume=self.bgm_volume)
         self.playing_bgm = True
 
     def update(self, seconds):
         if not self.playing_bgm:
             self.play_bgm()
 
+        
         self.player.update(seconds)
-        Drawable.updateOffset(self.player, self.size)
+        Drawable.updateOffset(self.player.camera, self.size)
 
         if self.speaking:
             TM.update(seconds)
@@ -135,3 +169,7 @@ class Room(object):
             if TM.is_finished():
                 TM.reset()
                 self.speaking = False
+
+
+        percent = (abs(self.player.vel[0]) / self.player.max_speed)
+        AM.drum_channel.set_volume(percent + 0.25)
