@@ -191,6 +191,7 @@ class DisplayManager(object):
 
                     #   Transition to game
                     if TITLE.start_new:
+                        AM.bgm_channel.fadeout(500)
                         self.fade_out()
 
                     elif TITLE.load:
@@ -237,7 +238,6 @@ class DisplayManager(object):
             self.states['in_game'] = True
             self.display_objects = []
             self.display_int = 0
-            AM.bgm_channel.fadeout(1000)
             self.room = Room()
             
         def update(self, seconds) -> None:

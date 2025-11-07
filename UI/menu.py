@@ -65,7 +65,7 @@ class Title(object):
 
     def initialize(self):
         #   Play the title theme    #
-        AM.play_ost("01")
+        AM.play_ost("01", has_intro=False, play_drums = False)
 
         #   Initialize the pointer  #
         self.pointer = Cursor(vec(0,0), "pointer.png")
@@ -111,6 +111,10 @@ class Title(object):
             #   Quit the game
             elif self.pointer_position == 2:
                 EM.QUIT()
+
+            else:
+                return
+            
 
         #   Move Option Down    #
         elif self.pointer_position < 2 and EM.perform_action('motion_down'):

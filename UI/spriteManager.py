@@ -45,13 +45,15 @@ class SpriteManager(object):
          "pointer.png": (33,16),
          'triangle.png': (32, 16),
 
+
          #  Player   #
          'samus.png': (32, 40),
 
          #  NPCs  #
-         'luigi.png': (32, 52)
+         'luigi.png': (32, 52),
          
          #  Enemies  #
+         'raven_b.png': (22, 18)
       }
       
 
@@ -90,11 +92,11 @@ class SpriteManager(object):
          return spriteSize
       
 
-      def getSprite(self, fileName, offset=None, transparent = True):
+      def getSprite(self, fileName, offset=None, enemy = False):
          """Get a sprite from a specified sheet"""
          # If this sprite has not already been loaded, load the image from memory
          if fileName not in self._surfaces.keys():
-            self._loadImage(fileName, offset != None)
+            self._loadImage(fileName, offset != None, enemy=enemy)
          
          # If this is an image sheet, return the correctly offset sub surface
          if offset != None:
@@ -103,15 +105,18 @@ class SpriteManager(object):
          # Otherwise, return the sheet created
          return self[fileName]
 
-
-      def _loadImage(self, fileName, sheet=False):
+      def _loadImage(self, fileName, sheet=False, enemy = False):
          """Begin loading the image"""
          # Load the full image
-         fullImage = image.load(join(SpriteManager._SM._IMAGE_FOLDER, fileName))
-         self._loadRoutine(fullImage, fileName, sheet)
+         if enemy:
+            fullImage = image.load(join(SpriteManager._SM._IMAGE_FOLDER, "enemies", fileName))
+         else:
+            fullImage = image.load(join(SpriteManager._SM._IMAGE_FOLDER, fileName))
+
+         self._loadRoutine(fullImage, fileName, sheet, enemy=enemy)
          
 
-      def _loadRoutine(self, fullImage, fileName, sheet = False, transparent = True):
+      def _loadRoutine(self, fullImage, fileName, sheet = False, transparent = True, enemy = False):
          """Get the image from the specified file"""
          # Look up some information about the image to be loaded
          # transparent = fileName in SpriteManager._SM._TRANSPARENCY
@@ -132,6 +137,7 @@ class SpriteManager(object):
             
             # Try to get the sprite size, use the default size if it is not stored
             spriteSize = self.getSize(fileName)
+            print(fileName)
 
             # See how big the sprite sheet is
             sheetDimensions = fullImage.get_size()

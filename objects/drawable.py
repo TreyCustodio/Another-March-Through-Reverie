@@ -23,9 +23,24 @@ class Drawable(object):
         
         cls.CAMERA_OFFSET = offset
 
-    def __init__(self, position=vec(0,0), file_name="null.png", offset=None):
+    @classmethod
+    def updateOffsetPos(cls, position, worldSize):
+        """Update the camera to focus on a position within a given world size"""
+        objPos = position
+        
+        offset = objPos - (SCREEN_SIZE // 2)
+        
+        for i in range(2):
+            offset[i] = int(max(0,
+                                min(offset[i],
+                                    worldSize[i] - SCREEN_SIZE[i])))
+        
+        cls.CAMERA_OFFSET = offset
+
+    def __init__(self, position=vec(0,0), file_name="null.png", offset=None,
+                 enemy=False):
         self.position = position
-        self.image = SM.getSprite(fileName=file_name, offset=offset)
+        self.image = SM.getSprite(fileName=file_name, offset=offset, enemy=enemy)
     
     def get_width(self):
         return self.image.get_width()

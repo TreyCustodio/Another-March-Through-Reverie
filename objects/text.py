@@ -81,6 +81,8 @@ class TextManager(object):
             self.set_box()
             self.triangle = Triangle()
             self.shadow = TextShadow()
+            self.shadow.set_position((self.char_pos[0] + self.char_space, self.char_pos[1]))
+
 
 
         def is_finished(self) -> bool:

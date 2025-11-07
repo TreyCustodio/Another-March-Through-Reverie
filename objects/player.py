@@ -4,7 +4,7 @@ from pygame import font, Rect
 
 from globals import vec, GRAVITY, UPSCALED
 from UI import EventManager, AudioManager, SpriteManager
-from . import Drawable
+from . import Drawable, State
 
 
 EM = EventManager.getInstance()
@@ -12,33 +12,10 @@ AM = AudioManager.getInstance()
 SM = SpriteManager.getInstance()
 
 
-class State(object):
-    def __init__(self, file_name, starting_frame, row, fps, num_frames):
-        #   Keep track of the state's data  #
-        self.file_name = file_name
-        self.starting_frame = starting_frame
-        self.row = row
-        self.fps = fps
-        self.num_frames = num_frames
-
-    def get_file_name(self) -> str:
-        return self.file_name
-    
-    def get_row(self) -> int:
-        return self.row
-    
-    def get_fps(self) -> int:
-        return self.fps
-    
-    def get_num_frames(self) -> int:
-        return self.num_frames
-    
-    def get_starting_frame(self) -> int:
-        return self.starting_frame
-
 class Player(Drawable):
     def __init__(self, position=vec(0,0)):
         super().__init__(position, file_name="samus.png", offset=(0,0))
+        self.cam_pos = position.copy()
 
         #   State Dictionary    #
         self.states = {
@@ -61,15 +38,17 @@ class Player(Drawable):
         self.shadow = Drawable(vec(self.position[0] - 8, self.position[1]), "samus.png", (0,0))
 
         #   Physics #
+        self.camera_speed = 900
         self.speed = 75
         self.max_speed = 600
         self.weight = 15
 
-        self.acceleration = 60
+        self.acceleration = 120
+        self.deceleration = 120
         self.boost_deceleration = 10
         self.jump_force = -200
         self.jump_force_max = -400
-        self.boost_force = self.max_speed*2
+        self.boost_force = 1200
         self.vel = vec(0,0)
 
         #   Physics States  #
@@ -140,6 +119,9 @@ class Player(Drawable):
         
         super().draw(drawSurf)
 
+    def set_position(self, position):
+        self.position = position
+        self.cam_pos = position.copy()
 
     def set_image(self):
         current_state = self.get_current_state()
@@ -356,11 +338,27 @@ class Player(Drawable):
 
         self.position += self.vel*seconds
 
-        if self.camera_direction == 0:
-            self.camera.set_position(vec(self.position[0] + self.camera_offset, self.position[1]))
-        elif self.camera_direction == 1:
-            self.camera.set_position(vec(self.position[0] - self.camera_offset, self.position[1]))
-        return
+        if self.cam_pos[0] < self.position[0]:
+            self.cam_pos[0] += self.camera_speed * seconds
+            if self.cam_pos[0] > self.position[0]:
+                self.cam_pos = self.position.copy()
+        
+        elif self.cam_pos[0] > self.position[0]:
+            self.cam_pos -= self.camera_speed * seconds
+            if self.cam_pos[0] < self.position[0]:
+                self.cam_pos = self.position.copy()
+        else:
+            pass
+
+
+        # if self.vel[0] > 0:
+        #     cam_vel = vec(min(self.vel[0], self.max_speed), self.vel[1])
+        
+        # else:
+        #     cam_vel = vec(max(self.vel[0], -self.max_speed), self.vel[1])
+
+        # self.cam_pos += cam_vel*seconds
+        # self.cam_pos = self.position
     
     def accel(self, seconds):
         #   Accelerate to max speed and stay there
@@ -376,20 +374,24 @@ class Player(Drawable):
     def decel(self, seconds):
         #   Decelerate to max speed and stay there
         if self.vel[0] > 0:
-            self.vel[0] -= (self.acceleration * self.boost_deceleration) * seconds
+            self.vel[0] -= (self.deceleration * self.boost_deceleration) * seconds
             if self.vel[0] < 0:
                 self.vel[0] = self.max_speed
         else:
-            self.vel[0] += (self.acceleration * self.boost_deceleration) * seconds
+            self.vel[0] += (self.deceleration * self.boost_deceleration) * seconds
             if self.vel[0] > 0:
                 self.vel[0] = -self.max_speed
+
+
+        
+
         
 
     def stop(self, seconds):
         #   Decelerate to 0 and stay there  #
         #   Facing Right
         if self.vel[0] > 0:
-            self.vel[0] -= (self.acceleration * self.weight) * seconds
+            self.vel[0] -= (self.deceleration * self.weight) * seconds
             if self.vel[0] < 0:
                 self.vel[0] = 0
                 if self.state == "walking_right":
@@ -397,7 +399,7 @@ class Player(Drawable):
         
         #   Facing Left
         else:
-            self.vel[0] += (self.acceleration * self.weight) * seconds
+            self.vel[0] += (self.deceleration * self.weight) * seconds
             if self.vel[0] > 0:
                 self.vel[0] = 0
                 if self.state == "walking_left":

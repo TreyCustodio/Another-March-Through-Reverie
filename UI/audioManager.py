@@ -82,7 +82,7 @@ class AudioManager(object):
         def is_busy(self):
             return pygame.mixer.get_busy()
         
-        def play_ost(self, name, has_intro = False, has_outro = False, volume = 1.0, fade_in = 0):
+        def play_ost(self, name, has_intro = False, has_outro = False, play_drums = True, volume = 1.0, fade_in = 0):
             """Play a track from the original soundtrack"""
             if name not in self.ost:
                 self._load_ost(name, has_intro, has_outro)
@@ -96,7 +96,8 @@ class AudioManager(object):
             else:
                 self.currently_playing = name
                 track = self.ost[name]
-                self.drum_channel.play(track.get_drums(), -1, fade_ms=fade_in)
+                if play_drums:
+                    self.drum_channel.play(track.get_drums(), -1, fade_ms=fade_in)
                 self.bgm_channel.play(track.get_main(), -1, fade_ms=fade_in)
                 return
 
@@ -114,6 +115,8 @@ class AudioManager(object):
 
         def fadeout_bgm(self, fadeoutAmount=1000):
             self.bgm_channel.fadeout(fadeoutAmount)
+            self.drum_channel.fadeout(fadeoutAmount)
+
             self.currently_playing = None
             self.playing_intro = False
         

@@ -72,13 +72,13 @@ class TextShadow(Surface):
         d_y -> the amount of change in y position before the triangle transitions to moving down/up"""
         
         #   Initialize a surface    #
-        super().__init__((64, 64), SRCALPHA)
+        super().__init__((16,16), SRCALPHA)
 
         #   Define Animation data   #
         self.position = position
 
         #   Blit the actual sprite on the surface   #
-        self.blit(SM.getSprite("text_circle.png"), (0,0))
+        self.blit(SM.getSprite("text_circle.png", (1,0)), (0,0))
 
     
     def set_position(self, position):

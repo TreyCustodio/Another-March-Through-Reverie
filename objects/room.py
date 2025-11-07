@@ -4,6 +4,8 @@ import os
 from pygame import Surface
 
 from . import Player, Drawable, TextManager, Interactable
+from .enemy import *
+
 from globals import SCREEN_SIZE, UPSCALED, SCALE_FACTOR, vec
 from UI import SpriteManager, AudioManager, EventManager
 
@@ -59,7 +61,7 @@ class Room(object):
         #     for j in range(1,num_rows):
         #         self.foreground.append(Drawable(vec(i*320,j*180), os.path.join("sunset","foreground.png")))
             
-        Drawable.updateOffset(self.player, self.size)
+        Drawable.updateOffsetPos(self.player.cam_pos, self.size)
 
         #   Lists of objects in the room    #
         self.npcs = [
@@ -67,8 +69,11 @@ class Room(object):
         ]
         self.npcs[0].position[1] -= self.npcs[0].get_height()
 
+        self.enemies = [
+            Raven(vec(16*8, self.floor))
+        ]
+        self.unloaded_enemies = []
         #   Camera  #
-        self.camera = Drawable(vec(0,0))
 
         #   Tiles   #
         self.tiles = []
@@ -108,7 +113,9 @@ class Room(object):
         self.player.draw(drawSurf)
 
         #   Enemies #
-        
+        for e in self.enemies:
+            e.draw(drawSurf)
+
         #   Foreground  #
         for f in self.foreground:
             f.draw(drawSurf)
@@ -159,9 +166,11 @@ class Room(object):
         if not self.playing_bgm:
             self.play_bgm()
 
-        
+        for e in self.enemies:
+            e.update(seconds)
+
         self.player.update(seconds)
-        Drawable.updateOffset(self.player.camera, self.size)
+        Drawable.updateOffsetPos(self.player.cam_pos, self.size)
 
         if self.speaking:
             TM.update(seconds)
@@ -172,4 +181,7 @@ class Room(object):
 
 
         percent = (abs(self.player.vel[0]) / self.player.max_speed)
-        AM.drum_channel.set_volume(percent + 0.25)
+        if percent > 0.5:
+            AM.drum_channel.set_volume(percent)
+        else:
+            AM.drum_channel.set_volume(0.5)
