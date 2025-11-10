@@ -36,6 +36,8 @@ class TextManager(object):
             self.end = False
             self.closing = False
             self.finished = False
+            self.skipping = False
+            self.fading = False
 
             #   Display Helpers #
             self.text_offset = None
@@ -47,10 +49,15 @@ class TextManager(object):
             self.set_display()
             self.position = None
             self.x_scale = 1
+            self.default_color = (255, 254, 200)
+            self.color = (255, 254, 200)
+            self.coloring = False
+            self.alpha = 255
+            self.d_alpha = 12
 
             #   Animation Data  #
             self.text_frame = 0
-            self.chars_per_second = 16
+            self.chars_per_second = 12
             self.char_timer = 0.0
             self.frames_per_second = 2
             self.animation_timer = 0.0
@@ -81,6 +88,7 @@ class TextManager(object):
             self.set_box()
             self.triangle = Triangle()
             self.shadow = TextShadow()
+            self.shadow.set_color(self.default_color)
             self.shadow.set_position((self.char_pos[0] + self.char_space, self.char_pos[1]))
 
 
@@ -124,21 +132,32 @@ class TextManager(object):
 
         def reset_animation(self):
             self.text_frame = 0
-            self.chars_per_second = 16
+            self.chars_per_second = 12
             self.char_timer = 0.0
 
-        def play_sound(self, name):
+        def play_sound(self):
+            if self.type == 0:
+                name = "text_1.wav"
+            elif self.type == 1:
+                name = "text_2.wav"
+
             name = os.path.join("text", name)
-            AM.playSFX(name)
+            AM.playText(name)
 
         def draw(self, drawSurf):
+            #   Draw the Display Surface / Textbox  #
+            print(self.position)
             drawSurf.blit(self.display_surface, self.position)
 
+            #   Draw the "waiting for input" triangle   #
             if self.waiting:
                 drawSurf.blit(self.triangle, self.triangle.position)
             
+            #   Draw the text index shadow  #
             else:
-                drawSurf.blit(self.shadow, self.position + self.shadow.position)
+                if not self.fading:
+                    drawSurf.blit(self.shadow, self.position + self.shadow.position)
+            
             return
         
         def handle_events(self):
@@ -146,6 +165,15 @@ class TextManager(object):
             if self.opening:
                 return
             
+            if EM.perform_action('space') and not self.closing:
+                self.closing = True
+                if self.clearing:
+                    self.char_pos = vec(0,0)
+                    self.set_shadow_position()
+                    self.clearing = False
+                    self.fading = True
+                    self.set_box()
+
             #   Waiting for input   #
             if self.waiting:
                 if EM.perform_action('interact'):
@@ -159,16 +187,29 @@ class TextManager(object):
                     #   Clear the box if needed
                     if self.clearing:
                         self.char_pos = vec(0,0)
+                        self.set_shadow_position()
+                        self.fading = True
                         self.clearing = False
-                        self.chars = []
                         self.set_box()
                     #   Play a sound
+
+            else:
+                self.skipping = EM.is_active('interact')
             return
         
+        def set_shadow_position(self, width = 1):
+            self.shadow.set_image(width, self.color)
+            self.shadow.set_position((self.char_pos[0] + self.char_space, self.char_pos[1]))
+
         def set_box(self):
             #   Need to remove textbox.png from spriteManager's memory  #
-            self.display_surface = SM.getSprite("textbox.png", (self.frame,self.row))
-            del SM._surfaces['textbox.png']
+            if self.type == 0:
+                self.display_surface = SM.getSprite("textbox.png", (self.frame,self.row))
+                del SM._surfaces['textbox.png']
+                
+            elif self.type == 1:
+                self.display_surface = Surface(SCREEN_SIZE, SRCALPHA)
+            
 
             if self.opening or self.closing:
                 self.display_surface = transform.scale(self.display_surface, (self.x_scale, 96))
@@ -185,12 +226,60 @@ class TextManager(object):
                 self.char_pos[0] = 0
                 return False
             
+            #   buffering
+            elif char == "*":
+                next_char = self.text[self.char_index + 1]
+                #   Take a breath
+                if next_char == ",":
+                    self.char_timer -= 0.2
+                    self.char_index += 1
+                
+                #   Take a pause
+                elif next_char == ".":
+                    self.char_timer -= 0.4
+                    self.char_index += 1
+
+                else:
+                    return True
+                
+                return False
+
+            #   %c -> Color char
+            elif char == "%":
+                if self.coloring:
+                    self.coloring = False
+                    self.color = self.default_color
+                    self.shadow.set_color(self.default_color)
+                    return
+
+                self.coloring = True
+                next_char = self.text[self.char_index + 1]
+
+                if next_char == "g":
+                    self.color = (171, 255, 53)
+
+                elif next_char == "r":
+                    self.color = (200, 0, 0)
+
+                elif next_char == "w":
+                    self.color = (170, 170, 255)
+                
+                elif next_char == "p":
+                    self.color = (255, 28, 122)
+
+                self.shadow.set_color(self.color)
+                self.char_index += 1
+                return False
+
             #   && -> Wait for input
             elif char == "&":
                 next_char = self.text[self.char_index + 1]
                 if next_char == "&":
                     #   Update the state
                     self.waiting = True
+                    EM.deactivate('interact')
+                    self.triangle.set_position(self.char_pos.copy())
+
 
                     #   Skip both "&&" characters
                     self.char_index += 1
@@ -205,6 +294,8 @@ class TextManager(object):
                     #   Update the state
                     self.waiting = True
                     self.clearing = True
+                    EM.deactivate('interact')
+
 
                     #   Skip both "$$" characters
                     self.char_index += 1
@@ -214,9 +305,9 @@ class TextManager(object):
                 
             return True
 
-        def display(self, char):
+        def display(self, char, play):
             #  Get the images
-            char_image = self.font.render(char, False, (255, 254, 200))
+            char_image = self.font.render(char, False, self.color)
             shadow1 = self.font.render(char, False, (0,0,0))
             shadow2 = self.font.render(char, False, (0,0,0))
 
@@ -243,12 +334,14 @@ class TextManager(object):
 
 
             #  Play a sound
-            self.play_sound("text_1.wav")
+            if play and not AM.menu_channel.get_busy():
+                self.play_sound()
             
             #  Set the char position
-            self.char_pos[0] += char_image.get_width() + self.char_space
-            self.shadow.set_position((self.char_pos[0] + self.char_space, self.char_pos[1]))
+            width = char_image.get_width()
 
+            self.char_pos[0] += width + self.char_space
+            self.set_shadow_position(width)
             
 
         def update(self, seconds):
@@ -259,7 +352,6 @@ class TextManager(object):
                 if self.x_scale >= 480:
                     self.opening = False
                     self.x_scale = 480
-                    self.triangle.set_position(vec(self.position[0] + self.display_surface.get_width() // 2 - self.triangle.get_width() // 2, self.position[1] + self.display_surface.get_height() - self.triangle.get_height()))
 
                 self.set_box()
                 x = UPSCALED[0] // 2 - self.display_surface.get_width() // 2
@@ -281,6 +373,19 @@ class TextManager(object):
                 self.position = vec(x,y)
                 return
             
+            elif self.fading:
+                self.alpha -= self.d_alpha
+                if self.alpha <= 0:
+                    self.display_surface.set_alpha(0)
+                    self.alpha = 255
+                    self.chars = []
+                    self.set_box()
+                    self.fading = False
+                else:
+                    self.display_surface.set_alpha(self.alpha)
+                
+                return
+
             #   Animate the box  #
             self.animation_timer += seconds
             if self.animation_timer >= 1/self.frames_per_second:
@@ -296,24 +401,35 @@ class TextManager(object):
             
             #   Display a char every 1/(chars per second) #
             self.char_timer += seconds
-            if self.char_timer >= 1/self.chars_per_second:
+
+            if self.skipping:
+                ready = self.char_timer >= 1/(self.chars_per_second * 8)
+            else:
+                ready = self.char_timer >= 1/self.chars_per_second
+
+            if ready:
+                #   ----- Reset the timer -----
+                self.char_timer = 0.0
+
                 #   ----- Get the next Char -----
                 char = self.text[self.char_index]
+                play = char != " " and char != "\n"
 
                 #   ----- Parse the next Char -----
                 display = self.parse(char)
+                self.parsed = True
 
                 #   ----- Display the Char -----
                 if display:
-                    self.display(char)
+                    self.display(char, play)
 
-                #   Reset the timer, increase the index
-                self.char_timer = 0.0
+                #   ----- Increase the index -----
                 self.char_index += 1
 
             #   Check if the dialogue is finished   #
             if self.char_index == len(self.text):
                 self.waiting = True
+                EM.deactivate('interact')
                 self.end = True
 
                 

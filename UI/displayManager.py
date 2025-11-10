@@ -1,12 +1,13 @@
 import os
 from pygame import transform, Surface, Rect, SRCALPHA, font
 from globals import SCREEN_SIZE, UPSCALED, SCALE_FACTOR, vec
-from objects import Drawable, Black, Fading, Room
+from objects import Drawable, Black, Fading, Room, Intro, RoomManager, Name, Mid_1
 from UI import EventManager, AudioManager, Title
 
 
 EVENT_MANAGER = EventManager.getInstance()
 AM = AudioManager.getInstance()
+RM = RoomManager()
 TITLE = Title()
     
 
@@ -99,25 +100,26 @@ class DisplayManager(object):
 
             #   "Another March Through Reverie" #
             #   Set the font
-            fnt = font.Font(os.path.join("UI", "fonts", 'PressStart2P.ttf'), 24)
+            fnt = font.Font(os.path.join("UI", "fonts", 'PressStart2P.ttf'), 16)
+            delta = 48
 
             #   Another March (White)
             text_surface = fnt.render('Another March', True, (255, 254, 184))
-            self.display_objects[0] = (Fading(text_surface, d_a=2), vec(UPSCALED[0] // 2 - text_surface.get_width() //2, text_surface.get_height() + 16))
+            self.display_objects[0] = (Fading(text_surface, d_a=2), vec(UPSCALED[0] // 2 - text_surface.get_width() //2, text_surface.get_height() + delta))
             self.display_objects[0][0].fade_in()
 
 
             #   Another March (Yellow)
             text_surface = fnt.render('Another March', True, (255, 241, 83))
-            self.display_objects.append((Fading(text_surface, d_a=1), vec(UPSCALED[0] // 2 - text_surface.get_width() //2, text_surface.get_height() + 16)))
+            self.display_objects.append((Fading(text_surface, d_a=1), vec(UPSCALED[0] // 2 - text_surface.get_width() //2, text_surface.get_height() + delta)))
 
             #   Through Reverie (White)
             text_surface = fnt.render('Through Reverie', True, (255, 254, 184))
-            self.display_objects.append((Fading(text_surface, d_a=4), vec(UPSCALED[0] // 2 - text_surface.get_width() //2, (text_surface.get_height() + 16) * 2) ))
+            self.display_objects.append((Fading(text_surface, d_a=4), vec(UPSCALED[0] // 2 - text_surface.get_width() //2, (text_surface.get_height() * 2.5 + delta)) ))
 
             #   Through Reverie (Yellow)
             text_surface = fnt.render('Through Reverie', True, (241, 255, 83))
-            self.display_objects.append((Fading(text_surface, d_a=1), vec(UPSCALED[0] // 2 - text_surface.get_width() //2, (text_surface.get_height() + 16) * 2) ))
+            self.display_objects.append((Fading(text_surface, d_a=1), vec(UPSCALED[0] // 2 - text_surface.get_width() //2, (text_surface.get_height() * 2.5 + delta)) ))
 
 
             
@@ -137,7 +139,7 @@ class DisplayManager(object):
             #   Display Opening Credits and make the title appear   #
             if self.display_int == 0:
                 self.play_sound("gong.wav")
-                fnt = font.Font(os.path.join("UI", "fonts", 'OpenSans-Regular.ttf'), 18)
+                fnt = font.Font(os.path.join("UI", "fonts", 'OpenSans-Regular.ttf'), 16)
                 text_surface = fnt.render('Yung Trey Games Presents...', True, (255, 50, 20))
                 self.display_objects[0] = (Fading(text_surface, d_a=6), vec(UPSCALED[0] // 2 - text_surface.get_width() //2, UPSCALED[1] // 2 - text_surface.get_height() // 2))
                 self.display_objects[0][0].set_opaque()
@@ -149,7 +151,7 @@ class DisplayManager(object):
             if self.display_int == 3:
                 drawSurf.fill((0,0,0))
                 self.play_sound("gong.wav")
-                fnt = font.Font(os.path.join("UI", "fonts", 'OpenSans-Regular.ttf'), 18)
+                fnt = font.Font(os.path.join("UI", "fonts", 'OpenSans-Regular.ttf'), 16)
                 text_surface = fnt.render('With Yung Trizzy on that Soundtrack...', True, (255, 50, 20))
                 self.display_objects[0] = (Fading(text_surface, d_a=6), vec(UPSCALED[0] // 2 - text_surface.get_width() //2, UPSCALED[1] // 2 - text_surface.get_height() // 2))
                 self.display_objects[0][0].set_opaque()
@@ -238,8 +240,15 @@ class DisplayManager(object):
             self.states['in_game'] = True
             self.display_objects = []
             self.display_int = 0
-            self.room = Room()
-            
+            TITLE = None
+            self.room = Intro()
+        
+        def load_next(self, room):
+            """Transition from title screen to a new game"""
+            del self.room
+            self.room = room
+            self.fade_in()
+
         def update(self, seconds) -> None:
             """Update the display based on the current state"""
             if self.states['title']:
@@ -299,6 +308,9 @@ class DisplayManager(object):
             elif self.states['in_game']:
                 self.room.update(seconds)
 
+                if self.room.ready_to_transition and not self.states['fading_out']:
+                    self.fade_out()
+
 
             if self.states['fading_out'] or self.states['fading_in']:
                 self.black.update(seconds)
@@ -313,6 +325,13 @@ class DisplayManager(object):
                         if self.display_int == 8:
                             self.start_new()
                             self.fade_in()
+
+                    elif self.states['in_game']:
+                        #   Switch to intro cutscene / game
+                        if self.room.ready_to_transition:
+                            RM.set_next_room(self.room.next_room)
+                            self.load_next(RM.get_current_room())
+
 
                 if self.black.transparent:
                     # print("Fade in complete")

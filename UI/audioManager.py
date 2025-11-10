@@ -82,16 +82,22 @@ class AudioManager(object):
         def is_busy(self):
             return pygame.mixer.get_busy()
         
-        def play_ost(self, name, has_intro = False, has_outro = False, play_drums = True, volume = 1.0, fade_in = 0):
+        def get_current_track(self) -> Track:
+            return self.ost[self.currently_playing]
+        
+        def play_ost(self, name, play_intro = False, play_outro = False, play_drums = True, volume = 1.0, fade_in = 0):
             """Play a track from the original soundtrack"""
             if name not in self.ost:
-                self._load_ost(name, has_intro, has_outro)
+                self._load_ost(name, play_intro, play_outro, play_drums)
 
-            if has_intro:
+            if play_intro:
                 self.playing_intro = True
                 self.currently_playing = name
                 track = self.ost[name]
-                return self.bgm_channel.play(track.get_intro(), 0, fade_ms=fade_in)
+                if play_drums:
+                    self.bgm_channel.play(track.get_drums_intro(), 0, fade_ms=fade_in)
+                else:
+                    self.bgm_channel.play(track.get_intro(), 0, fade_ms=fade_in)
             
             else:
                 self.currently_playing = name
@@ -99,7 +105,10 @@ class AudioManager(object):
                 if play_drums:
                     self.drum_channel.play(track.get_drums(), -1, fade_ms=fade_in)
                 self.bgm_channel.play(track.get_main(), -1, fade_ms=fade_in)
-                return
+            
+            #   Set the volume  #
+            self.bgm_channel.set_volume(volume)
+
 
 
 
@@ -125,6 +134,11 @@ class AudioManager(object):
             if name not in self.dict:
                 self._loadSFX(name)
             return self.dict[name].play(loops)
+        
+        def playText(self, name, loops=0):
+            if name not in self.dict:
+                self._loadSFX(name)
+            return self.menu_channel.play(self.dict[name], loops)
         
         def playMenuSFX(self, name, loops=0):
             if name not in self.dict:
@@ -157,26 +171,29 @@ class AudioManager(object):
             self.dict[name] = sound
         
         
-        def _load_ost(self, name, has_intro = False, has_outro = False):
+        def _load_ost(self, name, play_intro = False, play_outro = False, play_drums = False):
             """Load up a track from the ost"""
             track_number = name
             fullname = os.path.join(AudioManager._AM._OST_FOLDER, name)
 
-            if has_intro:
+            if play_intro:
                 name = fullname + "_intro.wav"
                 intro = pygame.mixer.Sound(name)
             else:
                 intro = None
 
-            if has_outro:
+            if play_outro:
                 name = fullname + "_outro.wav"
                 outro = pygame.mixer.Sound(name)
             else:
                 outro = None
 
             #   Add drums
-            name = fullname + "_drums.wav"
-            drums = pygame.mixer.Sound(name)
+            if play_drums:
+                name = fullname + "_drums.wav"
+                drums = pygame.mixer.Sound(name)
+            else:
+                drums = None
 
             #   Add main
             name = fullname + "_main.wav"
@@ -213,8 +230,9 @@ class AudioManager(object):
                     player.fadeout(fade_dur)
 
         def update(self, seconds):
+            # print(self.bgm_channel.get_volume())
             if self.playing_intro:
                 #   Transition to the track's loop after the intro finishes #
                 if not self.bgm_channel.get_busy():
                     self.playing_intro = False
-                    self.bgm_channel.play(self.ost[self.currently_playing][1], -1)
+                    self.bgm_channel.play(self.get_current_track().get_main(), -1)

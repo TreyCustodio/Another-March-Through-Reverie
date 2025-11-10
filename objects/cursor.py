@@ -66,7 +66,7 @@ class Triangle(Surface):
 
 
 class TextShadow(Surface):
-    def __init__(self, position = vec(0,0), d_y = 4):
+    def __init__(self, position = vec(16,0), d_y = 4):
         """Set an initial position.
         Then move the cursor up and down, updating its y position.
         d_y -> the amount of change in y position before the triangle transitions to moving down/up"""
@@ -76,14 +76,46 @@ class TextShadow(Surface):
 
         #   Define Animation data   #
         self.position = position
+        self.highlight_color = (120, 120, 120)
+        
+        #   Create the line #
+        self.img = Surface((16, 1), SRCALPHA)
+        self.highlight = Surface((16, 1), SRCALPHA)
+
+        self.img.fill((255,255,255))
+        self.highlight.fill(self.highlight_color)
+        self.width = 16
 
         #   Blit the actual sprite on the surface   #
-        self.blit(SM.getSprite("text_circle.png", (1,0)), (0,0))
+        self.blit(self.img, (0,14))
+        self.blit(self.highlight, (0,15))
+
 
     
     def set_position(self, position):
-        self.position = vec(position[0], position[1] + 16)
+        self.position = vec(position[0] + 16, position[1] + 16)
 
+    def set_image(self, width, color):
+        self.img = Surface((width, 1), SRCALPHA)
+        self.highlight = Surface((width, 1), SRCALPHA)
+
+        self.img.fill(color)
+        self.highlight.fill((self.highlight_color))
+
+        super().__init__((16,16), SRCALPHA)
+        self.blit(self.img, (0,14))
+        self.blit(self.highlight, (0,15))
+
+
+    def set_color(self, color):
+        super().__init__((16,16), SRCALPHA)
+        self.highlight_color = (max(color[0] - 100, 0), max(color[1] - 100, 0), max(color[2] - 100, 0))
+        self.img.fill(color)
+        self.highlight.fill(self.highlight_color)
+        self.blit(self.img, (0,14))
+        self.blit(self.highlight, (0,15))
+
+        
 class Cursor(Drawable):
     """A drawable object that moves back and forth"""
     def __init__(self, position=vec(0,0), file_name="", offset=None, d_x = 1, max_x = 8):

@@ -39,6 +39,7 @@ class Player(Drawable):
 
         #   Physics #
         self.camera_speed = 900
+        self.cam_delta = 200
         self.speed = 75
         self.max_speed = 600
         self.weight = 15
@@ -338,15 +339,17 @@ class Player(Drawable):
 
         self.position += self.vel*seconds
 
-        if self.cam_pos[0] < self.position[0]:
+        if self.cam_pos[0] < self.position[0] + self.cam_delta:
             self.cam_pos[0] += self.camera_speed * seconds
-            if self.cam_pos[0] > self.position[0]:
+            if self.cam_pos[0] > self.position[0] + self.cam_delta:
                 self.cam_pos = self.position.copy()
+                self.cam_pos[0] += self.cam_delta
         
-        elif self.cam_pos[0] > self.position[0]:
+        elif self.cam_pos[0] > self.position[0] - self.cam_delta:
             self.cam_pos -= self.camera_speed * seconds
-            if self.cam_pos[0] < self.position[0]:
+            if self.cam_pos[0] < self.position[0] - self.cam_delta:
                 self.cam_pos = self.position.copy()
+                self.cam_pos[0] -= self.cam_delta
         else:
             pass
 

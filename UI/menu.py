@@ -33,7 +33,7 @@ class Title(object):
         self.load = False
 
         #   Set the font
-        fnt = font.Font(os.path.join("UI", "fonts", 'OpenSans-Regular.ttf'), 18)
+        fnt = font.Font(os.path.join("UI", "fonts", 'OpenSans-Regular.ttf'), 14)
         self.fnt = fnt
         self.white = (255, 254, 184)
         self.red = (255, 20, 20)
@@ -65,7 +65,7 @@ class Title(object):
 
     def initialize(self):
         #   Play the title theme    #
-        AM.play_ost("01", has_intro=False, play_drums = False)
+        AM.play_ost("01", play_intro=False, play_drums = False)
 
         #   Initialize the pointer  #
         self.pointer = Cursor(vec(0,0), "pointer.png")

@@ -45,6 +45,8 @@ class SpriteManager(object):
          "pointer.png": (33,16),
          'triangle.png': (32, 16),
 
+         #  Other #
+         'celestial.png': (64,64),
 
          #  Player   #
          'samus.png': (32, 40),
@@ -137,7 +139,6 @@ class SpriteManager(object):
             
             # Try to get the sprite size, use the default size if it is not stored
             spriteSize = self.getSize(fileName)
-            print(fileName)
 
             # See how big the sprite sheet is
             sheetDimensions = fullImage.get_size()
