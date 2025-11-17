@@ -64,10 +64,7 @@ SPEECH = {
     \n\n\
     *.*.%wI’ll need to tread carefully...%",
 
-    "name_1":"\
-    %wThe Wayweaver%.&&\n\
-    May he pave the way for a brighter future...$$\
-    %wWhat will you name him?%\n\n\n"
+    "name_1":"%wThe Wayweaver%.&&\nMay he pave the road to a brighter future...$$%wWhat will you name him?%\n\n\n"
 }
 
 """

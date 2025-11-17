@@ -1,9 +1,9 @@
 from math import ceil
 import os
 
-from pygame import Surface, SRCALPHA
+from pygame import Surface, SRCALPHA, Rect, draw
 
-from . import Player, Drawable, TextManager, Interactable
+from . import Player, Drawable, TextManager, Interactable, GlowingBox
 from .enemy import *
 
 from globals import SCREEN_SIZE, UPSCALED, SCALE_FACTOR, vec, SPEECH
@@ -14,15 +14,7 @@ TM = TextManager.getInstance()
 EM = EventManager.getInstance()
 AM = AudioManager.getInstance()
 
-class RoomManager(object):
-    CURRENT_ROOM = None
 
-    def set_next_room(self, room):
-        del RoomManager.CURRENT_ROOM
-        RoomManager.CURRENT_ROOM = room()
-    
-    def get_current_room(self):
-        return RoomManager.CURRENT_ROOM
     
     
 class Tile(Drawable):
@@ -116,13 +108,8 @@ class Room(object):
             TM.handle_events()
 
         else:
-            #   Test Dialogue   #
-            if EM.perform_action('space'):
-                txt = "Greetings.&&\nWelcome to reverie.$$It's been a while,\nhuh?$$Today I've got a pocket\nfull of chimp change.$$Glorious day."
-                self.display_text(txt, row=0)
-
             #   Interact with an object #
-            elif EM.is_active('interact') and not self.player.airborn:
+            if EM.is_active('interact') and not self.player.airborn:
                 #   Check if the player can interact with any objects
                 for n in self.npcs:
                     if self.player.get_collision_rect().colliderect(n.get_interaction_rect()):
@@ -135,10 +122,10 @@ class Room(object):
             else:
                 self.player.handle_events()
     
-    def display_text(self, text="Hello", flag = 0, row = 0):
+    def display_text(self, text="Hello", flag = 0, row = 0, sound=1, pos = vec(0,0)):
         self.player.set_idle()
         self.speaking = True
-        TM.init(text, flag, row=row)
+        TM.init(text, flag, row=row, sound = sound, position=pos)
     
     def play_bgm(self):
         AM.play_ost(self.bgm, volume=self.bgm_volume, play_drums=False, play_intro = True)
@@ -170,6 +157,10 @@ class Room(object):
                 AM.drum_channel.set_volume(percent)
             else:
                 AM.drum_channel.set_volume(0.1)
+
+    def transition(self):
+        self.ready_to_transition = True
+        AM.fadeout_bgm()
 
 
 
@@ -234,6 +225,13 @@ class Mid_1(Room):
         AM.play_ost(self.bgm, volume=self.bgm_volume, play_drums=True, play_intro = False)
         self.playing_bgm = True
 
+    def handle_events(self):
+        super().handle_events()
+        #   Test Dialogue   #
+        if EM.perform_action('space'):
+            txt = "Greetings.&&\nWelcome to reverie.$$It's been a while,\nhuh?$$Today I've got a pocket\nfull of chimp change.$$Glorious day."
+            self.display_text(txt, row=0)
+    
 class Intro(Room):
     def __init__(self):
         super().__init__(bgm="05")
@@ -241,7 +239,7 @@ class Intro(Room):
         self.earth = Drawable(vec(SCREEN_SIZE[0] // 2 + 64, 80), "celestial.png", (3,1))
         self.in_cutscene = True
         # self.next_room = Name
-        self.next_room = Mid_1
+        self.next_room = Name
 
         self.text_int = -1
 
@@ -286,7 +284,7 @@ class Intro(Room):
 
         if self.text_int == 0:
             if not self.speaking:
-                self.display_text(SPEECH["intro_1"], 1)
+                self.display_text(SPEECH["intro_1"], 1, sound=2)
                 self.text_int += 1
 
         elif self.text_int == 1:
@@ -332,6 +330,51 @@ class Name(Room):
 
         #   Tiles
         self.tiles = []
+
+        #   Box animation
+        self.blue = (142, 142, 255)
+        self.d_blue = 60
+        self.blue_counter = 0
+        self.brightening = True
+        self.glow_timer = 0.0
+        self.glows_per_second = 16
+
+        #   Make the background
+        margin_x = 16
+        margin_y = 32
+
+        size = (SCREEN_SIZE[0] - margin_x * 2, SCREEN_SIZE[1] - margin_y * 2 - 48)
+
+        #   The text entry box
+        self.entry_box = GlowingBox(vec(0,0), size, margin_x, margin_y + 48)
+        self.entry_position = vec(margin_x, margin_y + 48)
+
+        #   The face box
+        face_size = (32, 32)
+        self.face_box = GlowingBox(vec(0,0), face_size, margin_x, margin_y)
+
+        #   The name box
+        name_size = (size[0] - 48, 32)
+        self.name_box = GlowingBox(vec(0,0), name_size, margin_x + 48, margin_y)
+        self.name_position = vec(margin_x + 48, margin_y)
+
+        #   The text box
+        self.text_box = GlowingBox(vec(0,0), (size[0], 96 - 16), margin_x, margin_y,
+                                   change_r = True, change_g = True, change_b = True,
+                                   glows_per_second=32)
+
+        #   Name entry data #
+        self.current_name = ""
+        self.letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+        self.next_room = Mid_1
+
+    def handle_events(self):
+        if not self.ready_to_transition:
+            if not self.speaking and EM.perform_action("space"):
+                self.transition()
+
+        super().handle_events()
     
     def play_bgm(self):
         AM.play_ost(self.bgm, volume=20.0, play_drums=False, play_intro = False)
@@ -339,15 +382,141 @@ class Name(Room):
 
     def draw(self, drawSurf):
         drawSurf.fill((255,255,255))
+
+        if self.text_int == 3:
+            #   Face box
+            self.face_box.draw(drawSurf)
+
+            #   Name box and current name
+            self.name_box.draw(drawSurf)
+
+            #   Text Entry Box
+            self.entry_box.draw(drawSurf)
+
+            #   Blit the letters on top 
+            if self.entry_box.opened:
+                TM.draw_char(drawSurf, self.name_position + 8, self.current_name, (244, 245, 186))
+
+                pos = self.entry_position.copy()
+                pos[0] += 16
+                pos[1] += 8
+
+                    
+                counter = 0
+                row = 0
+
+                def increment_row():
+                    pos[1] += 16
+                    pos[0] = self.entry_position[0] + 16
+                    
+
+                for c in self.letters:
+                    width,height = TM.draw_char(drawSurf, pos, c, (244, 245, 186))
+                    counter += 1
+
+                    if row == 0:
+                        if counter == 7:
+                            increment_row()
+                            counter = 0
+                            row += 1
+                            continue
+
+                    elif row == 1:
+                        if counter == 6:
+                            increment_row()
+                            counter = 0
+                            row += 1
+                            continue
+
+                    elif row == 2:
+                        if counter == 5:
+                            increment_row()
+                            counter = 0
+                            row += 1
+                            continue
+
+                    elif row == 3:
+                        if counter == 4:
+                            increment_row()
+                            counter = 0
+                            row += 1
+                            continue
+
+                    elif row == 4:
+                        if counter == 3:
+                            increment_row()
+                            counter = 0
+                            row += 1
+                            continue
+                    
+                    if row == 5:
+                        if counter == 2:
+                            increment_row()
+                            counter = 0
+                            row += 1
+                            continue
+
+                    pos[0] += width + 16
+
+            
+
+        else:
+            #   Text Box    #
+            self.text_box.draw(drawSurf)
+
+
+
         super().draw(drawSurf)
 
     def update(self, seconds):
+        #   Update the background   #
+        # self.glow_timer += seconds
+        # if self.glow_timer >= 1/self.glows_per_second:
+        #     self.glow_timer = 0.0
+        #     if self.brightening:
+        #         self.blue = (self.blue[0] + 1, self.blue[1] + 1, self.blue[2])
+        #         self.blue_counter += 1
+        #         if self.blue_counter == self.d_blue:
+        #             self.brightening = False
+        #             self.blue_counter = 0
+        #     else:
+        #         self.blue = (self.blue[0] - 1, self.blue[1] - 1, self.blue[2])
+        #         self.blue_counter += 1
+        #         if self.blue_counter == self.d_blue:
+        #             self.brightening = True
+        #             self.blue_counter = 0
+
         super().update(seconds, update_bgm = False)  
 
         if self.text_int == 0:
             if not self.speaking:
-                self.display_text(SPEECH["name_1"], 1)
+                self.display_text(SPEECH["name_1"], 1, sound=1, pos = self.entry_position.copy())
                 self.text_int += 1
 
         elif self.text_int == 1:
-            pass
+            self.text_box.update(seconds)
+            if not self.speaking:
+                self.text_box.close()
+                self.text_int += 1
+        
+        elif self.text_int == 2:
+            self.text_box.update(seconds)
+            if self.text_box.closed:
+                TM.init("", 0)
+                self.text_int += 1
+        
+        else:
+            self.name_box.update(seconds)
+            self.face_box.update(seconds)
+            self.entry_box.update(seconds)
+        
+
+class RoomManager(object):
+    CURRENT_ROOM = None
+
+    def set_next_room(self, room):
+        del RoomManager.CURRENT_ROOM
+        RoomManager.CURRENT_ROOM = room()
+    
+    def get_current_room(self) -> Room:
+        return RoomManager.CURRENT_ROOM

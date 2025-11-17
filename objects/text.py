@@ -71,7 +71,7 @@ class TextManager(object):
 
         def init(self, text: str, flag: int,
                  fnt = os.path.join("UI", "fonts", 'OpenSans-Regular.ttf'), size=24,
-                 row=0
+                 row=0, sound=1, position = vec(0,0)
                  ) -> None:
             """Prepare to display the current dialogue.
             text -> the text to display
@@ -79,6 +79,7 @@ class TextManager(object):
             fnt -> the path to the font
             """
             self.opening = True
+            self.sound = sound
             self.row = row
             fnt = os.path.join("UI", "fonts", 'ReturnofGanon.ttf')
             size = 16
@@ -90,7 +91,7 @@ class TextManager(object):
             self.shadow = TextShadow()
             self.shadow.set_color(self.default_color)
             self.shadow.set_position((self.char_pos[0] + self.char_space, self.char_pos[1]))
-
+            self.position = position
 
 
         def is_finished(self) -> bool:
@@ -136,17 +137,12 @@ class TextManager(object):
             self.char_timer = 0.0
 
         def play_sound(self):
-            if self.type == 0:
-                name = "text_1.wav"
-            elif self.type == 1:
-                name = "text_2.wav"
-
+            name = "text_" + str(self.sound) + ".wav"
             name = os.path.join("text", name)
             AM.playText(name)
 
         def draw(self, drawSurf):
             #   Draw the Display Surface / Textbox  #
-            print(self.position)
             drawSurf.blit(self.display_surface, self.position)
 
             #   Draw the "waiting for input" triangle   #
@@ -217,8 +213,30 @@ class TextManager(object):
                 for c in self.chars:
                     self.display_surface.blit(c[0], c[1])
 
-            
+        
+        def draw_char(self, drawSurf, position, char, color = (255, 255, 255)):
+            """Universal function that draws a char with shading.
+            Returns the width and height of the image for reference."""
+            text = self.font.render(char, False, color)
+            shadow1 = self.font.render(char, False, (0,0,0))
+            shadow2 = self.font.render(char, False, (0,0,0))
 
+            #   Define the shadow offsets
+            shadow_offset = vec(-1,0)
+            shadow_offset2 = vec(1,0)
+            shadow_offset3 = vec(0,-1)
+            shadow_offset4 = vec(0,1)
+
+
+            #  Blit the image
+            drawSurf.blit(shadow1, position + shadow_offset)
+            drawSurf.blit(shadow2, position + shadow_offset2)
+            drawSurf.blit(shadow1, position + shadow_offset3)
+            drawSurf.blit(shadow1, position + shadow_offset4)
+            drawSurf.blit(text, position)
+
+            return (text.get_width(), text.get_height())
+        
         def parse(self, char):
             #  \n -> Proceed to next line
             if char == "\n":
@@ -278,7 +296,7 @@ class TextManager(object):
                     #   Update the state
                     self.waiting = True
                     EM.deactivate('interact')
-                    self.triangle.set_position(self.char_pos.copy())
+                    self.triangle.set_position(self.position + self.char_pos.copy())
 
 
                     #   Skip both "&&" characters
@@ -295,6 +313,7 @@ class TextManager(object):
                     self.waiting = True
                     self.clearing = True
                     EM.deactivate('interact')
+                    self.triangle.set_position(self.position + self.char_pos.copy())
 
 
                     #   Skip both "$$" characters
@@ -354,7 +373,7 @@ class TextManager(object):
                     self.x_scale = 480
 
                 self.set_box()
-                x = UPSCALED[0] // 2 - self.display_surface.get_width() // 2
+                x = (UPSCALED[0] // 2) - self.display_surface.get_width() // 2
                 y = 32
                 self.position = vec(x,y)
                 return

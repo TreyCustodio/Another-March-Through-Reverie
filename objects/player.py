@@ -39,7 +39,10 @@ class Player(Drawable):
 
         #   Physics #
         self.camera_speed = 900
+
+        # self.cam_delta = 64
         self.cam_delta = 200
+
         self.speed = 75
         self.max_speed = 600
         self.weight = 15
@@ -339,19 +342,75 @@ class Player(Drawable):
 
         self.position += self.vel*seconds
 
-        if self.cam_pos[0] < self.position[0] + self.cam_delta:
-            self.cam_pos[0] += self.camera_speed * seconds
-            if self.cam_pos[0] > self.position[0] + self.cam_delta:
-                self.cam_pos = self.position.copy()
-                self.cam_pos[0] += self.cam_delta
+        #   Camera Positioning  #
+        #   Player outrunning camera
+        if abs(self.vel[0]) > self.max_speed:
+            # print("Overspeed")
+            #   Moving Right
+            if self.vel[0] > 0:
+                if int(self.cam_pos[0]) < int((self.position[0] + self.cam_delta)):
+                    self.cam_pos[0] += self.camera_speed * seconds
+                    if int(self.cam_pos[0]) > int(self.position[0] + self.cam_delta):
+                        self.cam_pos = self.position.copy()
+                        self.cam_pos[0] += self.cam_delta
+
+            #   Moving Left
+            elif self.vel[0] < 0:
+                if int(self.cam_pos[0]) > int(self.position[0] - self.cam_delta):
+                    self.cam_pos -= self.camera_speed * seconds
+                    if int(self.cam_pos[0]) < int(self.position[0] - self.cam_delta):
+                        self.cam_pos = self.position.copy()
+                        self.cam_pos[0] -= self.cam_delta
         
-        elif self.cam_pos[0] > self.position[0] - self.cam_delta:
-            self.cam_pos -= self.camera_speed * seconds
-            if self.cam_pos[0] < self.position[0] - self.cam_delta:
-                self.cam_pos = self.position.copy()
-                self.cam_pos[0] -= self.cam_delta
+        #   Player speeding up or slowing down
+        elif abs(self.vel[0]) < self.max_speed:
+            # print("Accel/Decel")
+            #   Moving Right
+            if self.vel[0] > 0:
+                if self.cam_pos[0] < (self.position[0] + self.cam_delta):
+                    self.cam_pos[0] += self.vel[0] * seconds
+                    if self.cam_pos[0] > (self.position[0] + self.cam_delta):
+                        self.cam_pos = self.position.copy()
+                        self.cam_pos[0] += self.cam_delta
+
+            #   Moving Left
+            elif self.vel[0] < 0:
+                if self.cam_pos[0] > self.position[0] - self.cam_delta:
+                    self.cam_pos += self.vel[0] * seconds # still (+) because we're using player vel value which is already (-)
+                    if self.cam_pos[0] < self.position[0] - self.cam_delta:
+                        self.cam_pos = self.position.copy()
+                        self.cam_pos[0] -= self.cam_delta
+            #   At rest
+            else:
+                # print("AT REST\n")
+                if self.cam_pos[0] < (self.position[0]):
+                    self.cam_pos[0] += (self.vel[0]) * seconds
+                    if self.cam_pos[0] > (self.position[0]):
+                        self.cam_pos = self.position.copy()
+                else:
+                    self.cam_pos += self.vel[0] * seconds
+                    if self.cam_pos[0] < self.position[0]:
+                        self.cam_pos = self.position.copy()
+                pass
         else:
-            pass
+            # print("Maintaining")
+            #   Moving Right
+            if self.vel[0] > 0:
+                if self.cam_pos[0] < (self.position[0] + self.cam_delta):
+                    self.cam_pos[0] += self.max_speed * seconds
+                    if self.cam_pos[0] > (self.position[0] + self.cam_delta):
+                        self.cam_pos = self.position.copy()
+                        self.cam_pos[0] += self.cam_delta
+
+            #   Moving Left
+            elif self.vel[0] < 0:
+                if self.cam_pos[0] > self.position[0] - self.cam_delta:
+                    self.cam_pos -= (self.max_speed) * seconds
+                    if self.cam_pos[0] < self.position[0] - self.cam_delta:
+                        self.cam_pos = self.position.copy()
+                        self.cam_pos[0] -= self.cam_delta
+            
+            
 
 
         # if self.vel[0] > 0:

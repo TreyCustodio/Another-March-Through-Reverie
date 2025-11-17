@@ -40,6 +40,8 @@ class Triangle(Surface):
 
     def set_position(self, new_position):
         """Update the triangle's positional data to support a new position"""
+        new_position[0] += 32
+        new_position[1] += 24
         self.position = new_position
         self.max_y = new_position[1] + self.d_y
         self.min_y = new_position[1] - self.d_y

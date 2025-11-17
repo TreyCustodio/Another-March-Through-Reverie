@@ -178,7 +178,7 @@ class DisplayManager(object):
             surf.fill((255,255,255))
             drawSurf.blit(surf, vec(0,0))
 
-            self.room.draw(drawSurf)
+            RM.get_current_room().draw(drawSurf)
             
 
         def draw_black(self, drawSurf):
@@ -197,7 +197,8 @@ class DisplayManager(object):
                         self.fade_out()
 
                     elif TITLE.load:
-                        pass
+                        AM.bgm_channel.fadeout(500)
+                        self.fade_out()
 
                 #   Title Screen Appearing  #
                 if self.display_int < 7:
@@ -214,7 +215,7 @@ class DisplayManager(object):
                         self.display_int = 8
             
             elif self.states['in_game']:
-                self.room.handle_events()
+                RM.get_current_room().handle_events()
 
             return
             #   Fade Control Testing    #
@@ -241,12 +242,20 @@ class DisplayManager(object):
             self.display_objects = []
             self.display_int = 0
             TITLE = None
-            self.room = Intro()
+
+            RM.set_next_room(Intro)
         
+        def load_game(self):
+            self.states['title'] = False
+            self.states['in_game'] = True
+            self.display_objects = []
+            self.display_int = 0
+            TITLE = None
+            RM.set_next_room(Mid_1)
+
         def load_next(self, room):
             """Transition from title screen to a new game"""
-            del self.room
-            self.room = room
+            RM.set_next_room(room)
             self.fade_in()
 
         def update(self, seconds) -> None:
@@ -306,9 +315,9 @@ class DisplayManager(object):
                         self.title_timer += seconds
 
             elif self.states['in_game']:
-                self.room.update(seconds)
+                RM.get_current_room().update(seconds)
 
-                if self.room.ready_to_transition and not self.states['fading_out']:
+                if RM.get_current_room().ready_to_transition and not self.states['fading_out']:
                     self.fade_out()
 
 
@@ -323,14 +332,18 @@ class DisplayManager(object):
                     if self.states['title']:
                         #   Switch to intro cutscene / game
                         if self.display_int == 8:
-                            self.start_new()
-                            self.fade_in()
+                            if TITLE.start_new:
+                                self.start_new()
+                                self.fade_in()
+                            elif TITLE.load:
+                                self.load_game()
+                                self.fade_in()
 
                     elif self.states['in_game']:
                         #   Switch to intro cutscene / game
-                        if self.room.ready_to_transition:
-                            RM.set_next_room(self.room.next_room)
-                            self.load_next(RM.get_current_room())
+                        room = RM.get_current_room()
+                        if room.ready_to_transition:
+                            self.load_next(room.next_room)
 
 
                 if self.black.transparent:
