@@ -21,7 +21,8 @@ class Interactable(Drawable):
         self.animation_timer = 0.0
 
     def get_interaction_rect(self):
-        return self.interaction_rect
+        return Rect(self.position, (self.image.get_width(), self.image.get_height()))
+
     
     def get_box(self):
         return self.box

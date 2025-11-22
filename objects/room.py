@@ -3,7 +3,7 @@ import os
 
 from pygame import Surface, SRCALPHA, Rect, draw
 
-from . import Player, Drawable, TextManager, Interactable, GlowingBox
+from . import Player, Drawable, TextManager, Interactable, GlowingBox, TextShadow
 from .enemy import *
 
 from globals import SCREEN_SIZE, UPSCALED, SCALE_FACTOR, vec, SPEECH
@@ -86,7 +86,7 @@ class Room(object):
             e.draw(drawSurf)
 
         #   Player  #
-            self.player.draw(drawSurf)
+        self.player.draw(drawSurf)
 
         #   Foreground  #
         for f in self.foreground:
@@ -340,6 +340,10 @@ class Name(Room):
         self.glows_per_second = 16
 
         #   Make the background
+        self.bg = GlowingBox(size = SCREEN_SIZE, margin_x=0, margin_y=0,
+                             color=(232, 232, 210), change_r=True, change_b=False, change_g=True, delta = 33,
+                             glows_per_second=8)
+
         margin_x = 16
         margin_y = 32
 
@@ -363,16 +367,94 @@ class Name(Room):
                                    change_r = True, change_g = True, change_b = True,
                                    glows_per_second=32)
 
+        self.highlight = TextShadow()
+        p = self.entry_position.copy()
+        p[0] -= 6
+        p[1] -= 6
+        self.highlight.set_position(p)
+        
         #   Name entry data #
-        self.current_name = ""
+        self.current_name = "The Wayweaver"
+        self.current_char = "A"
+        self.char_index = 0
+        self.row = 0
         self.letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        self.numbers = "1234567890.!?"
 
+        self.chars_1 = "ABCDEF"
+        self.chars_2 = "GHIJKL"
+        self.chars_3 = "MNOPQR"
+        self.chars_4 = "STUVW"
+        self.chars_5 = "XYZ"
+
+        self.chars = [self.chars_1, self.chars_2, self.chars_3, self.chars_4, self.chars_5]
+        
         self.next_room = Mid_1
 
+    def move_right(self):
+        self.highlight.position[0] += 20
+        self.char_index += 1
+        self.current_char = self.chars[self.row][self.char_index]
+    
+    def move_left(self):
+        self.highlight.position[0] -= 20
+        self.char_index -= 1
+        self.current_char = self.chars[self.row][self.char_index]
+    
+    def move_up(self):
+        self.highlight.position[1] -= 18
+        self.row -= 1
+        self.current_char = self.chars[self.row][self.char_index]
+    
+    def move_down(self):
+        self.highlight.position[1] += 18
+        self.row += 1
+        if self.char_index >= len(self.chars[self.row]):
+            self.char_index = len(self.chars[self.row] - 1)
+            self.current_char = self.chars[self.row][-1]
+            self.highlight.position[0] = self.entry_position.copy()[0] + 10 + ( (len(self.chars[self.row]) - 1) * 20)
+        else:
+            self.current_char = self.chars[self.row][self.char_index]
+    
     def handle_events(self):
+        
         if not self.ready_to_transition:
-            if not self.speaking and EM.perform_action("space"):
-                self.transition()
+            if not self.speaking:
+                if EM.perform_action("space"):
+                    self.transition()
+                
+                elif EM.perform_action("interact"):
+                    self.current_name += self.current_char
+                
+                elif EM.perform_action("attack1"):
+                    if self.current_name != "":
+                        self.current_name = self.current_name[:-1]
+
+                elif EM.perform_action("motion_down"):
+                    if self.row < 4:
+                        self.move_down()
+
+                elif EM.perform_action("motion_up"):
+                    if self.row > 0:
+                        self.move_up()
+
+                elif EM.perform_action("motion_right"):
+                    if self.row in [0,1,2]:
+                        if self.char_index < 5:
+                            self.move_right()
+
+                    elif self.row == 3:
+                        if self.char_index < 4:
+                            self.move_right()
+                    
+                    elif self.row == 4:
+                        if self.char_index < 3:
+                            self.move_right()
+
+                elif EM.perform_action("motion_left"):
+                    if self.char_index > 0:
+                        self.move_left()
+
 
         super().handle_events()
     
@@ -381,7 +463,8 @@ class Name(Room):
         self.playing_bgm = True
 
     def draw(self, drawSurf):
-        drawSurf.fill((255,255,255))
+        #   Background
+        self.bg.draw(drawSurf)
 
         if self.text_int == 3:
             #   Face box
@@ -406,57 +489,62 @@ class Name(Room):
                 row = 0
 
                 def increment_row():
-                    pos[1] += 16
+                    pos[1] += 18
                     pos[0] = self.entry_position[0] + 16
-                    
+                
+                def increment_row_num():
+                    pos[1] += 18
+                    pos[0] = self.entry_position[0] + 180
 
                 for c in self.letters:
                     width,height = TM.draw_char(drawSurf, pos, c, (244, 245, 186))
                     counter += 1
 
-                    if row == 0:
-                        if counter == 7:
-                            increment_row()
-                            counter = 0
-                            row += 1
-                            continue
-
-                    elif row == 1:
+                    if row in [0,1,2]:
                         if counter == 6:
                             increment_row()
                             counter = 0
                             row += 1
                             continue
-
-                    elif row == 2:
+                    
+                    elif row in [3]:
                         if counter == 5:
                             increment_row()
                             counter = 0
                             row += 1
                             continue
-
-                    elif row == 3:
+                    
+                    elif row in [4]:
                         if counter == 4:
                             increment_row()
                             counter = 0
                             row += 1
                             continue
-
-                    elif row == 4:
-                        if counter == 3:
-                            increment_row()
-                            counter = 0
-                            row += 1
-                            continue
                     
-                    if row == 5:
-                        if counter == 2:
-                            increment_row()
-                            counter = 0
-                            row += 1
-                            continue
+                    else:
+                        pass
+                    pos[0] += 20
 
-                    pos[0] += width + 16
+                pos[0] = self.entry_position[0] + 180
+                pos[1] = self.entry_position[1] + 8
+                counter = 0
+                row = 0
+
+                for n in self.numbers:
+                    width,height = TM.draw_char(drawSurf, pos, n, (244, 245, 186))
+                    counter += 1
+
+                    if counter == 5:
+                        increment_row_num()
+                        counter = 0
+                        row += 1
+                        continue
+
+                    pos[0] += 20
+
+            #   Blit the text shadow
+            drawSurf.blit(self.highlight, self.highlight.position)
+
 
             
 
@@ -486,6 +574,7 @@ class Name(Room):
         #             self.brightening = True
         #             self.blue_counter = 0
 
+        self.bg.update(seconds)
         super().update(seconds, update_bgm = False)  
 
         if self.text_int == 0:

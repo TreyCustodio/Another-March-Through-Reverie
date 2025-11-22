@@ -65,7 +65,7 @@ class Title(object):
 
     def initialize(self):
         #   Play the title theme    #
-        AM.play_ost("01", play_intro=False, play_drums = False)
+        AM.play_ost("01", play_intro=True, play_drums = False)
 
         #   Initialize the pointer  #
         self.pointer = Cursor(vec(0,0), "pointer.png")
@@ -115,9 +115,11 @@ class Title(object):
             else:
                 return
             
+            #   Play a sound
+            
 
         #   Move Option Down    #
-        elif self.pointer_position < 2 and EM.perform_action('motion_down'):
+        elif self.pointer_position < 3 and EM.perform_action('motion_down'):
             # AM.playMenuSFX("menu_1.wav")
             # AM.playSFX("menu_1.wav")
 
@@ -160,15 +162,61 @@ class Title(object):
                 self.display_objects[1][0] = Fading(text_surface, d_a=1, transparent=False)
                 shadow = self.fnt.render("Load Game", False, self.shadow_color)
                 self.shadows[1][0] = shadow
+            
+            #   Wrap back to New
+            elif self.pointer_position == 3:
+                self.pointer_position = 0
+                pos = self.display_objects[0][1].copy()
+                pos[0] -= (self.pointer.get_width() + 8)
+                pos[1] += (self.pointer.get_height() // 2 - 10)
+                self.pointer.set_position(pos)
+
+                #   Make New red
+                text_surface = self.fnt.render("New Game", False, self.red)
+                self.display_objects[0][0] = Fading(text_surface, d_a=1, transparent=False)
+                shadow = self.fnt.render("New Game", False, self.selected_shadow)
+                self.shadows[0][0] = shadow
+
+                #   Make Quit white
+                text_surface = self.fnt.render("Quit Game", True, self.white)
+                self.display_objects[2][0] = Fading(text_surface, d_a=1, transparent=False)
+                shadow = self.fnt.render("Quit Game", False, self.shadow_color)
+                self.shadows[2][0] = shadow
+            
+            else:
+                return
+            
+            #   Play menu sound
+            AM.play_menu_sfx(os.path.join("menu", "menu_1.wav"))
 
         #   Move Option Up  #
-        elif self.pointer_position > 0 and EM.perform_action('motion_up'):
+        elif self.pointer_position >= 0 and EM.perform_action('motion_up'):
             # AM.playMenuSFX("menu_1.wav")
             # AM.playSFX("menu_1.wav")
             self.pointer_position -= 1
 
+            #   Set to Quit
+            if self.pointer_position == -1:
+                self.pointer_position = 2
+                pos = self.display_objects[2][1].copy()
+                pos[0] -= (self.pointer.get_width() + 8)
+                pos[1] += (self.pointer.get_height() // 2 - 10)
+                self.pointer.set_position(pos)
+
+                #   Make Quit Red
+                text_surface = self.fnt.render("Quit Game", False, self.red)
+                self.display_objects[2][0] = Fading(text_surface, d_a=1, transparent=False)
+                text_surface = self.fnt.render("Quit Game", False, self.selected_shadow)
+                self.shadows[2][0] = text_surface
+
+                #   Make New White
+                text_surface = self.fnt.render("New Game", True, self.white)
+                self.display_objects[0][0] = Fading(text_surface, d_a=1, transparent=False)
+                new_shadow = self.fnt.render("New Game", False, self.shadow_color)
+                self.shadows[0][0] = new_shadow
+
             #   Set to Load
-            if self.pointer_position == 1:
+            elif self.pointer_position == 1:
                 pos = self.display_objects[1][1].copy()
                 pos[0] -= (self.pointer.get_width() + 8)
                 pos[1] += (self.pointer.get_height() // 2 - 10)
@@ -204,7 +252,13 @@ class Title(object):
                 self.display_objects[1][0] = Fading(text_surface, d_a=1, transparent=False)
                 shadow = self.fnt.render("Load Game", False, self.shadow_color)
                 self.shadows[1][0] = shadow
-        return
+            
+            else:
+                return
+            
+            #   Play menu sound
+            AM.play_menu_sfx(os.path.join("menu", "menu_1.wav"))
+
     
     def update(self, seconds):
         for o in self.display_objects:

@@ -193,11 +193,11 @@ class DisplayManager(object):
 
                     #   Transition to game
                     if TITLE.start_new:
-                        AM.bgm_channel.fadeout(500)
+                        AM.fadeout_bgm(1500)
                         self.fade_out()
 
                     elif TITLE.load:
-                        AM.bgm_channel.fadeout(500)
+                        AM.fadeout_bgm(1500)
                         self.fade_out()
 
                 #   Title Screen Appearing  #
@@ -243,7 +243,9 @@ class DisplayManager(object):
             self.display_int = 0
             TITLE = None
 
-            RM.set_next_room(Intro)
+            # RM.set_next_room(Intro)
+            RM.set_next_room(Name)
+
         
         def load_game(self):
             self.states['title'] = False

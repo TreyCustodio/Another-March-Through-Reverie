@@ -140,7 +140,7 @@ class AudioManager(object):
                 self._loadSFX(name)
             return self.menu_channel.play(self.dict[name], loops)
         
-        def playMenuSFX(self, name, loops=0):
+        def play_menu_sfx(self, name, loops=0):
             if name not in self.dict:
                 self._loadSFX(name)
 
