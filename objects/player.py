@@ -12,10 +12,19 @@ AM = AudioManager.getInstance()
 SM = SpriteManager.getInstance()
 
 
+class PlayerLoader:
+    _INSTANCE = None
+
+    @classmethod
+    def get_player(cls):
+        if cls._INSTANCE == None:
+            cls._INSTANCE = Player()
+        return cls._INSTANCE
+    
+
 class Player(Drawable):
     def __init__(self, position=vec(0,0)):
         super().__init__(position, file_name="samus.png", offset=(0,0))
-        self.cam_pos = position.copy()
 
         #   State Dictionary    #
         self.states = {
@@ -37,16 +46,20 @@ class Player(Drawable):
         self.animation_timer = 0.0
         self.shadow = Drawable(vec(self.position[0] - 8, self.position[1]), "samus.png", (0,0))
 
-        #   Physics #
-        self.camera_speed = 900
+        #   Camera Properties   #
+        p = position.copy()
+        self.cam_pos = vec(int(p[0]), int(p[1]))
+        self.camera_speed = 40
+        self.camera_catch = 900
+        self.cam_delta = 50
+        self.camera_lock = False
+        self.idle_counter = 32
+        self.idle_frames = 32
 
-        # self.cam_delta = 64
-        self.cam_delta = 200
-
+        #   Physics Variables   #
         self.speed = 75
         self.max_speed = 600
         self.weight = 15
-
         self.acceleration = 120
         self.deceleration = 120
         self.boost_deceleration = 10
@@ -61,16 +74,28 @@ class Player(Drawable):
         self.boosting = False
         self.idle = True
         self.crouching = True
+        self.visible = False # If False, the player is not considered in the engine
 
-        #   Camera  #
-        self.camera = Drawable(vec(0,0))
-        self.camera_direction = 0 # 0 -> left; 1 -> right
-        self.camera_offset = 0
+
+    def set_visible(self):
+        self.visible = True
+
+    def set_invisible(self):
+        self.visible = False
+    
+    def lock_camera(self):
+        self.camera_lock = True
+
+    def free_camera(self):
+        self.camera_lock = False
 
     def get_collision_rect(self):
         return Rect(self.position, (self.get_width(), self.get_height()))
         
     def draw(self, drawSurf):
+        if not self.visible:
+            return
+        
         if self.state == 'idle':
             pass
 
@@ -114,10 +139,11 @@ class Player(Drawable):
                 elif self.state == 'walking_right' or self.state == 'jumping_right':
                     self.shadow.set_position(vec(self.position[0] - 6, self.position[1]))
                     self.shadow.draw(drawSurf)
-
-        velocity = str(round(self.vel[0], 2))
-        img = font.Font(os.path.join("UI", "fonts", 'PressStart2P.ttf'), 16).render("Velocity: " + str(velocity), False, (255,255,255), (0,0,0))
-        drawSurf.blit(img, vec(self.position[0] + self.get_width() // 2 - img.get_width() // 2, self.position[1] - img.get_height() - 8) - Drawable.CAMERA_OFFSET)
+        
+        #   Display the velocity    #
+        # velocity = str(round(self.vel[0], 2))
+        # img = font.Font(os.path.join("UI", "fonts", 'PressStart2P.ttf'), 16).render("Velocity: " + str(velocity), False, (255,255,255), (0,0,0))
+        # drawSurf.blit(img, vec(self.position[0] + self.get_width() // 2 - img.get_width() // 2, self.position[1] - img.get_height() - 8) - Drawable.CAMERA_OFFSET)
         
 
         
@@ -179,6 +205,9 @@ class Player(Drawable):
         self.crouching = False
 
     def handle_events(self):
+        if not self.visible:
+            return
+        
         #   Left Motion #
         if EM.is_active('motion_left'):
 
@@ -286,17 +315,57 @@ class Player(Drawable):
 
         return
     
-    def update_movement(self, seconds):
-        
-        #   v_new = (v_old + acceleration) * seconds
+    def accel(self, seconds):
+        """Accelerate to max speed and stay at that speed"""
+        #   Moving Right    #
+        if self.vel[0] > 0:
+            self.vel[0] += self.acceleration * seconds
+            if self.vel[0] > self.max_speed:
+                self.vel[0] = self.max_speed
+        elif self.vel[0] < 0:
+            self.vel[0] -= self.acceleration * seconds
+            if self.vel[0] < -self.max_speed:
+                self.vel[0] = -self.max_speed
 
-        #   This code would work for a slope
-        #   self.vel = self.vel + SLOPE * seconds
-        
+    def decel(self, seconds):
+        """Decelerate to max speed and stay at that speed"""
+        #   Moving Right    #
+        if self.vel[0] > 0:
+            self.vel[0] -= (self.deceleration * self.boost_deceleration) * seconds
+            if self.vel[0] < 0:
+                self.vel[0] = self.max_speed
+       
+       #    Moving Left #
+        else:
+            self.vel[0] += (self.deceleration * self.boost_deceleration) * seconds
+            if self.vel[0] > 0:
+                self.vel[0] = -self.max_speed
 
-        #   Vertical Velocity Control   #
+    def stop(self, seconds):
+        """Decelerate to 0 and stop"""
+        #   Moving Right    #
+        if self.vel[0] > 0:
+            self.vel[0] -= (self.deceleration * self.weight) * seconds
+            if self.vel[0] < 0:
+                self.vel[0] = 0
+                #   Begin the idle animation
+                if self.state == "walking_right":
+                    self.set_idle("right")
+        
+        #   Moving Left #
+        else:
+            self.vel[0] += (self.deceleration * self.weight) * seconds
+            if self.vel[0] > 0:
+                self.vel[0] = 0
+                #   Begin the idle animation
+                if self.state == "walking_left":
+                    self.set_idle("left")
+
+    def update_vertical(self, seconds):
+        """Update the player's vertical (y axis) velocity"""
+        #   In the air  #
         if self.airborn:
-            #   Hit the ground; stop jumping
+            #   Check if the player is on the ground and update their state
             if self.position[1] >  UPSCALED[1] - UPSCALED[1] // 4 - self.get_height():
                 #   Reset states
                 self.airborn = False
@@ -321,153 +390,170 @@ class Player(Drawable):
                 #   Deactivate the interact button
                 EM.deactivate('interact')
                 
-            #   Otherwise enforce gravity
+            #   Enforce gravity on the vertical velocity
             else:
                 self.vel[1] += GRAVITY * seconds
-        
-        #   Horizontal Velocity Control #
+
+    def update_horizontal(self, seconds):
+        """Update the player's horizontal (x axis) velocity"""
+        #   Decel to 0
         if self.idle:
             self.stop(seconds)
-        
         else:
-            #   Accel
+            #   Accel to max speed
             if abs(self.vel[0]) < self.max_speed:
                 self.accel(seconds)
                 
-            #   Deccel
+            #   Deccel to max speed
             else:
                 if abs(self.vel[0]) > self.max_speed:
                     self.decel(seconds)
-            
 
+    def update_movement(self, seconds):
+        """
+        Update the player's position and velocity.
+        v_new = (v_old + acceleration) * seconds
+        """
+        #   Running up a slope  #
+        #   self.vel = self.vel + SLOPE * seconds
+        
+        #   Vertical Velocity Control   #
+        self.update_vertical(seconds)
+        
+        #   Horizontal Velocity Control #
+        self.update_horizontal(seconds)
+        
+        #   Set Position    #
         self.position += self.vel*seconds
 
-        #   Camera Positioning  #
-        #   Player outrunning camera
-        if abs(self.vel[0]) > self.max_speed:
-            # print("Overspeed")
-            #   Moving Right
-            if self.vel[0] > 0:
-                if int(self.cam_pos[0]) < int((self.position[0] + self.cam_delta)):
-                    self.cam_pos[0] += self.camera_speed * seconds
-                    if int(self.cam_pos[0]) > int(self.position[0] + self.cam_delta):
-                        self.cam_pos = self.position.copy()
-                        self.cam_pos[0] += self.cam_delta
+    def set_camera_position(self, direction=0, lock = False):
+        """
+        Set the camera's position to the desired position.
+        Directions:
+        0 -> right; 1 -> left; 2 -> idle
+        """
 
-            #   Moving Left
-            elif self.vel[0] < 0:
-                if int(self.cam_pos[0]) > int(self.position[0] - self.cam_delta):
-                    self.cam_pos -= self.camera_speed * seconds
-                    if int(self.cam_pos[0]) < int(self.position[0] - self.cam_delta):
-                        self.cam_pos = self.position.copy()
-                        self.cam_pos[0] -= self.cam_delta
-        
-        #   Player speeding up or slowing down
-        elif abs(self.vel[0]) < self.max_speed:
-            # print("Accel/Decel")
-            #   Moving Right
-            if self.vel[0] > 0:
-                if self.cam_pos[0] < (self.position[0] + self.cam_delta):
-                    self.cam_pos[0] += self.vel[0] * seconds
-                    if self.cam_pos[0] > (self.position[0] + self.cam_delta):
-                        self.cam_pos = self.position.copy()
-                        self.cam_pos[0] += self.cam_delta
-
-            #   Moving Left
-            elif self.vel[0] < 0:
-                if self.cam_pos[0] > self.position[0] - self.cam_delta:
-                    self.cam_pos += self.vel[0] * seconds # still (+) because we're using player vel value which is already (-)
-                    if self.cam_pos[0] < self.position[0] - self.cam_delta:
-                        self.cam_pos = self.position.copy()
-                        self.cam_pos[0] -= self.cam_delta
-            #   At rest
+        #   Facing Right
+        if direction == 0:
+            if lock:
+                self.cam_pos[0] = int(self.position[0])
             else:
-                # print("AT REST\n")
-                if self.cam_pos[0] < (self.position[0]):
-                    self.cam_pos[0] += (self.vel[0]) * seconds
-                    if self.cam_pos[0] > (self.position[0]):
-                        self.cam_pos = self.position.copy()
-                else:
-                    self.cam_pos += self.vel[0] * seconds
-                    if self.cam_pos[0] < self.position[0]:
-                        self.cam_pos = self.position.copy()
-                pass
+                self.cam_pos[0] = int(self.position[0] + self.cam_delta)
+            self.idle_counter = 0
+
+        #   Facing Left
+        elif direction == 1:
+            if lock:
+                self.cam_pos[0] = int(self.position[0])
+            else:
+                self.cam_pos[0] = int(self.position[0] - self.cam_delta)
+            self.idle_counter = 0
+
+        #   Idle
         else:
-            # print("Maintaining")
-            #   Moving Right
-            if self.vel[0] > 0:
-                if self.cam_pos[0] < (self.position[0] + self.cam_delta):
-                    self.cam_pos[0] += self.max_speed * seconds
-                    if self.cam_pos[0] > (self.position[0] + self.cam_delta):
-                        self.cam_pos = self.position.copy()
-                        self.cam_pos[0] += self.cam_delta
-
-            #   Moving Left
-            elif self.vel[0] < 0:
-                if self.cam_pos[0] > self.position[0] - self.cam_delta:
-                    self.cam_pos -= (self.max_speed) * seconds
-                    if self.cam_pos[0] < self.position[0] - self.cam_delta:
-                        self.cam_pos = self.position.copy()
-                        self.cam_pos[0] -= self.cam_delta
-            
-            
-
-
-        # if self.vel[0] > 0:
-        #     cam_vel = vec(min(self.vel[0], self.max_speed), self.vel[1])
-        
-        # else:
-        #     cam_vel = vec(max(self.vel[0], -self.max_speed), self.vel[1])
-
-        # self.cam_pos += cam_vel*seconds
-        # self.cam_pos = self.position
+            self.cam_pos[0] = int(self.position[0])
     
-    def accel(self, seconds):
-        #   Accelerate to max speed and stay there
-        if self.vel[0] > 0:
-            self.vel[0] += self.acceleration * seconds
-            if self.vel[0] > self.max_speed:
-                self.vel[0] = self.max_speed
-        elif self.vel[0] < 0:
-            self.vel[0] -= self.acceleration * seconds
-            if self.vel[0] < -self.max_speed:
-                self.vel[0] = -self.max_speed
-
-    def decel(self, seconds):
-        #   Decelerate to max speed and stay there
-        if self.vel[0] > 0:
-            self.vel[0] -= (self.deceleration * self.boost_deceleration) * seconds
-            if self.vel[0] < 0:
-                self.vel[0] = self.max_speed
-        else:
-            self.vel[0] += (self.deceleration * self.boost_deceleration) * seconds
-            if self.vel[0] > 0:
-                self.vel[0] = -self.max_speed
-
-
-        
-
-        
-
-    def stop(self, seconds):
-        #   Decelerate to 0 and stay there  #
+    def camera_in_position(self):
+        """Check if the camera is in the desired position"""
         #   Facing Right
         if self.vel[0] > 0:
-            self.vel[0] -= (self.deceleration * self.weight) * seconds
-            if self.vel[0] < 0:
-                self.vel[0] = 0
-                if self.state == "walking_right":
-                    self.set_idle("right")
+            return int(self.cam_pos[0]) == int(self.position[0] + self.cam_delta)
         
         #   Facing Left
-        else:
-            self.vel[0] += (self.deceleration * self.weight) * seconds
-            if self.vel[0] > 0:
-                self.vel[0] = 0
-                if self.state == "walking_left":
-                    self.set_idle("left")
+        elif self.vel[0] < 0:
+            return int(self.cam_pos[0]) == int(self.position[0] - self.cam_delta)
         
+        #   Idle
+        else:
+            return int(self.cam_pos[0]) == int(self.position[0])
+
+    def update_camera(self, seconds):
+        """Position the camera as desired"""
+        #   Keep the player centered during camera lock
+        if self.camera_lock:
+            if self.camera_in_position():
+                return
+            else:
+                if self.vel[0] > 0:
+                    self.set_camera_position(0, lock=True)
+                elif self.vel[0] < 0:
+                    self.set_camera_position(1, lock=True)
+                else:
+                    self.set_camera_position(2, lock=True)
+            return
+        
+        #   Check if the camera is in the desired position
+        if self.camera_in_position():
+            return
+
+        #   Update the camera's position
+        else:
+            #   Player running at max speed or above; camera catches up fast
+            if abs(self.vel[0]) >= self.max_speed:
+                #   Moving Right
+                if self.vel[0] > 0:
+                    if self.cam_pos[0] < int(self.position[0] + self.cam_delta):
+                        self.cam_pos[0] += (self.camera_catch) * seconds
+                        
+                        if self.cam_pos[0] >= int(self.position[0] + self.cam_delta):
+                            self.set_camera_position(0)
+
+                #   Moving Left
+                elif self.vel[0] < 0 :
+                    if self.cam_pos[0] > int(self.position[0] - self.cam_delta):
+                        self.cam_pos[0] -= (self.camera_catch) * seconds
+                        
+                        if self.cam_pos[0] <= int(self.position[0] - self.cam_delta):
+                            self.set_camera_position(1)
+
+            #    Player running slower than max speed; cam moves with the player
+            else:
+                #   Moving Right
+                if self.vel[0] > 0:
+                    if self.cam_pos[0] < int(self.position[0] + self.cam_delta):
+                        self.cam_pos[0] += (self.vel[0] + self.camera_speed) * seconds
+                        
+                        if self.cam_pos[0] >= int(self.position[0] + self.cam_delta):
+                            self.set_camera_position(0)
+
+
+                #   Moving Left
+                elif self.vel[0] < 0:
+                    if self.cam_pos[0] > int(self.position[0] - self.cam_delta):
+
+                        self.cam_pos[0] += (self.vel[0] - self.camera_speed) * seconds
+                        
+                        if self.cam_pos[0] <= int(self.position[0] - self.cam_delta):
+                            self.set_camera_position(1)
+
+
+                #   At rest
+                else:
+                    #   Camera too far left; move it right
+                    if self.idle_counter == self.idle_frames:
+                        if self.cam_pos[0] < int(self.position[0]):
+                            self.cam_pos[0] += (self.camera_speed * 2) * seconds
+                            if self.cam_pos[0] >= int(self.position[0]):
+                                self.set_camera_position(2)
+
+                        #   Camera too far right; move it left
+                        elif self.cam_pos[0] > int(self.position[0]):
+                            self.cam_pos[0] -= (self.camera_speed * 2) * seconds
+                            if self.cam_pos[0] <= int(self.position[0]):
+                                self.set_camera_position(2)
+                    else:
+                        self.idle_counter += 1
+
+                    
+
+    
+
+    
+    
     def update(self, seconds):
+        if not self.visible:
+            return
+        
         #   Update Animation    #
         if self.animation_timer >= (1/self.get_fps()):
             self.frame += 1
@@ -479,3 +565,6 @@ class Player(Drawable):
 
         #   Update Physics  #
         self.update_movement(seconds)
+
+        #   Update Camera Position  #
+        self.update_camera(seconds)

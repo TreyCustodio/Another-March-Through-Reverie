@@ -39,7 +39,7 @@ class SpriteManager(object):
       # Static information about the sprite sizes of particular image sheets.
       _SPRITE_SIZES = {
          #  Text  #
-         "textbox.png": (480, 96),
+         "textbox.png": (240, 96),
 
          #  Menu Icons  #
          "pointer.png": (33,16),

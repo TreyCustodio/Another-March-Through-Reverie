@@ -1,9 +1,11 @@
 from math import ceil
 import os
 
-from pygame import Surface, SRCALPHA, Rect, draw
+from pygame import Surface, SRCALPHA, Rect, draw, transform
 
-from . import Player, Drawable, TextManager, Interactable, GlowingBox, TextShadow
+from . import PlayerLoader, Drawable, TextManager, Interactable, GlowingBox, TextShadow,\
+Weegee
+
 from .enemy import *
 
 from globals import SCREEN_SIZE, UPSCALED, SCALE_FACTOR, vec, SPEECH
@@ -31,7 +33,7 @@ class Tile(Drawable):
 class Room(object):
     def __init__(self, bgm="02", vol=2):
         self.size = vec(UPSCALED[0] * 20, UPSCALED[1])
-        self.player = Player()
+        self.player = PlayerLoader.get_player()
         self.floor = UPSCALED[1] - UPSCALED[1] // 4
         self.player.set_position(vec(UPSCALED[0] // 2 - self.player.get_width() // 2, UPSCALED[1] - UPSCALED[1] // 4 - self.player.get_height()))
         
@@ -39,6 +41,8 @@ class Room(object):
         self.bgm = bgm
         self.bgm_volume = vol
         self.playing_bgm = False
+        self.music_timer = 0.0
+        self.music_checks_ps = 4
 
         #   States  #
         self.speaking = False # in dialogue
@@ -66,7 +70,8 @@ class Room(object):
 
     def draw(self, drawSurf):
         for b in self.background:
-            b.draw(drawSurf)
+            drawSurf.blit(b.image, vec(0,0))
+            # b.draw(drawSurf)
 
         # bbg = Surface((SCREEN_SIZE[0] * 4, 1))
         # bbg.fill((230,0,0))
@@ -113,7 +118,7 @@ class Room(object):
                 #   Check if the player can interact with any objects
                 for n in self.npcs:
                     if self.player.get_collision_rect().colliderect(n.get_interaction_rect()):
-                        self.display_text(n.get_text(), n.get_box())
+                        self.display_text(n.get_text(), row = n.get_box())
                         EM.deactivate('interact')
                         return
                 self.player.handle_events()
@@ -138,6 +143,9 @@ class Room(object):
         for e in self.enemies:
             e.update(seconds)
 
+        for n in self.npcs:
+            n.update(seconds)
+            
         self.player.update(seconds)
         Drawable.updateOffsetPos(self.player.cam_pos, self.size)
 
@@ -151,6 +159,7 @@ class Room(object):
         if self.in_cutscene:
             return
 
+        #   Update the Background Music #
         if update_bgm:
             percent = (abs(self.player.vel[0]) / self.player.max_speed)
             if percent > 0.1:
@@ -170,34 +179,41 @@ class Room(object):
 
 class Mid_1(Room):
     def __init__(self):
-        super().__init__(bgm="02")
+        super().__init__(bgm="WR")
 
         #   Art #
-        self.background = []
-        num_images = ceil(self.size[0] / 320)
-        num_rows = 2
+        bk = Drawable(vec(0,0), os.path.join("red.png"))
+        bk.image = transform.scale(bk.image, SCREEN_SIZE)
+        self.background = [bk]
+                           
+        
+        # self.background = []
+        # num_images = ceil(self.size[0] / 320)
+        # num_rows = 2
 
-        for i in range(0, num_images + 1):
-            for j in range(num_rows):
-                self.background.append(Drawable(vec(i*320,j*180), os.path.join("sunset","background.png")))
+        # for i in range(0, num_images + 1):
+        #     for j in range(num_rows):
+        #         self.background.append(Drawable(vec(i*320,j*180), os.path.join("sunset","background.png")))
        
-        self.layers = []
-        for i in range(0,num_images+1):
-            for j in range(1,num_rows):
-                for k in range(1,4):
-                    string = str(k) + '.png'
-                    self.layers.append(Drawable(vec(i*320,j*180), os.path.join("sunset", string)))
+        # self.layers = []
+        # for i in range(0,num_images+1):
+        #     for j in range(1,num_rows):
+        #         for k in range(1,4):
+        #             string = str(k) + '.png'
+        #             self.layers.append(Drawable(vec(i*320,j*180), os.path.join("sunset", string)))
 
         self.foreground = []
         # for i in range(0,num_images):
         #     for j in range(1,num_rows):
         #         self.foreground.append(Drawable(vec(i*320,j*180), os.path.join("sunset","foreground.png")))
-            
+        
+        
+
         Drawable.updateOffsetPos(self.player.cam_pos, self.size)
 
         #   Lists of objects in the room    #
         self.npcs = [
-            Interactable(vec(self.player.position[0] + 64, self.floor))
+            Weegee(vec(self.player.position[0] + 64, self.floor))
         ]
         self.npcs[0].position[1] -= self.npcs[0].get_height()
 
@@ -208,21 +224,24 @@ class Mid_1(Room):
         #   Camera  #
 
         #   Tiles   #
+        self.tileset = "mid.png"
         self.tiles = []
 
         for x in range(0, int(self.size[0]), 16):
             for y in range(int(self.floor) + 16, int(self.size[1]), 16):
                 self.tiles += [
-                    Tile(vec(x, y), "mid.png", (0,0))
+                    Tile(vec(x, y), self.tileset, (0,0))
                 ]
 
             self.tiles += [
-                Tile(vec(x, self.floor-16), "mid.png", (2,0)),
-                Tile(vec(x, self.floor), "mid.png", (2,1))
+                Tile(vec(x, self.floor-16), self.tileset, (2,0)),
+                Tile(vec(x, self.floor), self.tileset, (2,1))
                 ]
+            
+        self.player.set_visible()
     
     def play_bgm(self):
-        AM.play_ost(self.bgm, volume=self.bgm_volume, play_drums=True, play_intro = False)
+        AM.play_ost(self.bgm, volume=self.bgm_volume, play_drums=False, play_intro = False)
         self.playing_bgm = True
 
     def handle_events(self):
@@ -232,9 +251,54 @@ class Mid_1(Room):
             txt = "Greetings.&&\nWelcome to reverie.$$It's been a while,\nhuh?$$Today I've got a pocket\nfull of chimp change.$$Glorious day."
             self.display_text(txt, row=0)
     
+class Und_1(Room):
+    def __init__(self):
+        super().__init__(bgm="07")
+
+        #   Art #
+        bk = Drawable(vec(0,0), os.path.join("mountains_Lesiakower.png"))
+        bk.image = transform.scale(bk.image, (640 // 2, 427 // 2))
+        self.background = [bk]
+
+        #   Camera  #
+        Drawable.updateOffsetPos(self.player.cam_pos, self.size)
+
+        #   Tiles   #
+        #   Need to only draw tiles within the camera's view and the player's path
+        self.tileset = "ice.png"
+        self.tiles = []
+
+        for x in range(0, int(self.size[0]), 16):
+            for y in range(int(self.floor) + 16, int(self.size[1]), 16):
+                self.tiles += [
+                    Tile(vec(x, y), self.tileset, (0,0))
+                ]
+
+            self.tiles += [
+                Tile(vec(x, self.floor-16), self.tileset, (2,0)),
+                Tile(vec(x, self.floor), self.tileset, (2,1))
+                ]
+        
+       
+        self.enemies = [
+            Raven(vec(16*8, self.floor - 18))
+        ]
+        self.player.set_visible()
+    
+    def play_bgm(self):
+        AM.play_ost(self.bgm, volume=self.bgm_volume, play_drums=False, play_intro = True)
+        self.playing_bgm = True
+
+    def handle_events(self):
+        super().handle_events()
+        #   Test Dialogue   #
+        if EM.perform_action('space'):
+            txt = "Greetings.&&\nWelcome to reverie.$$It's been a while,\nhuh?$$Today I've got a pocket\nfull of chimp change.$$Glorious day."
+            self.display_text(txt, row=0)
+
 class Intro(Room):
     def __init__(self):
-        super().__init__(bgm="05")
+        super().__init__(bgm="02")
         self.bk = Drawable(vec(0,0), "space.png")
         self.earth = Drawable(vec(SCREEN_SIZE[0] // 2 + 64, 80), "celestial.png", (3,1))
         self.in_cutscene = True
@@ -315,7 +379,7 @@ class Intro(Room):
 
 class Name(Room):
     def __init__(self):
-        super().__init__(bgm="06", vol=20)
+        super().__init__(bgm="03", vol=20)
         #   Lists of objects in the room    #
         #   Interactable Npcs
         self.npcs = [

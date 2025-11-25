@@ -27,6 +27,7 @@ class TextManager(object):
             self.text = ""
             self.type = 0
             self.display_surface = None
+            self.background = None
             self.font = None
 
             #   States  #
@@ -40,6 +41,10 @@ class TextManager(object):
             self.fading = False
 
             #   Display Helpers #
+            self.box_width = SM._SPRITE_SIZES["textbox.png"][0]
+            self.box_height = SM._SPRITE_SIZES["textbox.png"][1]
+
+
             self.text_offset = None
             self.char_pos = None
             self.char_space = None
@@ -63,7 +68,7 @@ class TextManager(object):
             self.animation_timer = 0.0
             self.frame = 0
             self.row = 0
-            self.num_frames = 3
+            self.num_frames = 4
 
             #   Other display Images    #
             self.triangle = None
@@ -90,7 +95,8 @@ class TextManager(object):
             self.triangle = Triangle()
             self.shadow = TextShadow()
             self.shadow.set_color(self.default_color)
-            self.shadow.set_position((self.char_pos[0] + self.char_space, self.char_pos[1]))
+            self.set_shadow_position(width=8)
+            # self.shadow.set_position((self.char_pos[0] + self.char_space + 16, self.char_pos[1] + 20))
             self.position = position
 
 
@@ -107,6 +113,8 @@ class TextManager(object):
             self.reset_metadata()
             self.set_display()
             self.reset_animation()
+
+
             
         def reset_states(self):
             self.opening = False
@@ -116,6 +124,11 @@ class TextManager(object):
             self.closing = False
             self.finished = False
 
+            #   Text modifications  #
+            self.coloring = False
+            self.color= self.default_color
+            self.shadow.set_color(self.default_color)
+
         def reset_metadata(self):
             self.text = ""
             self.type = 0
@@ -124,7 +137,7 @@ class TextManager(object):
 
         def set_display(self):
             """Set display parameters to there default settings"""
-            self.text_offset = vec(24,12)
+            self.text_offset = vec(24,20)
             self.char_pos = vec(0,0)
             self.char_space = 0
             self.line_space = 32
@@ -143,7 +156,11 @@ class TextManager(object):
 
         def draw(self, drawSurf):
             #   Draw the Display Surface / Textbox  #
+            if self.type == 0:
+                drawSurf.blit(self.background, self.position)
             drawSurf.blit(self.display_surface, self.position)
+
+            
 
             #   Draw the "waiting for input" triangle   #
             if self.waiting:
@@ -161,6 +178,7 @@ class TextManager(object):
             if self.opening:
                 return
             
+            #   Skip dialogue   #
             if EM.perform_action('space') and not self.closing:
                 self.closing = True
                 if self.clearing:
@@ -195,31 +213,48 @@ class TextManager(object):
         
         def set_shadow_position(self, width = 1):
             self.shadow.set_image(width, self.color)
-            self.shadow.set_position((self.char_pos[0] + self.char_space, self.char_pos[1]))
+            self.shadow.set_position((self.char_pos[0] + self.char_space + 16, self.char_pos[1] + 24))
 
         def set_box(self):
-            #   Need to remove textbox.png from spriteManager's memory  #
+            #   Default Box #
             if self.type == 0:
-                self.display_surface = SM.getSprite("textbox.png", (self.frame,self.row))
+                self.display_surface = Surface((self.box_width, self.box_height), SRCALPHA)
+                self.background = SM.getSprite("textbox.png", (self.frame,self.row))
                 del SM._surfaces['textbox.png']
-                
+            
+            #   Invisible Box   #
             elif self.type == 1:
                 self.display_surface = Surface(SCREEN_SIZE, SRCALPHA)
             
+            if self.opening:
+                if self.type == 0:
+                    self.background = transform.scale(self.background, (self.x_scale, 96))
+                else:
+                    self.display_surface = transform.scale(self.display_surface, (self.x_scale, 96))
+            
+            elif self.closing:
+                if self.type == 0:
+                    self.background = transform.scale(self.background, (self.x_scale, 96))
+                else:
+                    self.display_surface = transform.scale(self.display_surface, (self.x_scale, 96))
 
-            if self.opening or self.closing:
-                self.display_surface = transform.scale(self.display_surface, (self.x_scale, 96))
+                self.blit_chars()
+
             else:
-                for c in self.chars:
-                    self.display_surface.blit(c[0], c[1])
+                self.blit_chars()
 
         
+        def blit_chars(self):
+            for c in self.chars:
+                self.display_surface.blit(c[0], c[1])
+
         def draw_char(self, drawSurf, position, char, color = (255, 255, 255)):
             """Universal function that draws a char with shading.
             Returns the width and height of the image for reference."""
             text = self.font.render(char, False, color)
             shadow1 = self.font.render(char, False, (0,0,0))
             shadow2 = self.font.render(char, False, (0,0,0))
+
 
             #   Define the shadow offsets
             shadow_offset = vec(-1,0)
@@ -294,10 +329,8 @@ class TextManager(object):
                 next_char = self.text[self.char_index + 1]
                 if next_char == "&":
                     #   Update the state
-                    self.waiting = True
-                    EM.deactivate('interact')
-                    self.triangle.set_position(self.position + self.char_pos.copy())
-
+                    self.wait()
+                    self.triangle.set_row(0)
 
                     #   Skip both "&&" characters
                     self.char_index += 1
@@ -310,11 +343,9 @@ class TextManager(object):
                 next_char = self.text[self.char_index + 1]
                 if next_char == "$":
                     #   Update the state
-                    self.waiting = True
+                    self.wait()
                     self.clearing = True
-                    EM.deactivate('interact')
-                    self.triangle.set_position(self.position + self.char_pos.copy())
-
+                    self.triangle.set_row(1)
 
                     #   Skip both "$$" characters
                     self.char_index += 1
@@ -363,35 +394,31 @@ class TextManager(object):
             self.set_shadow_position(width)
             
 
+        def wait(self):
+            self.waiting = True
+            EM.deactivate('interact')
+            self.triangle.set_position(self.position + self.char_pos.copy())
+
+            
         def update(self, seconds):
             #   Open box Animation  #
             if self.opening:
                 #   Each frame, upscale the x axis
                 self.x_scale += 20
-                if self.x_scale >= 480:
+                if self.x_scale >= self.box_width:
                     self.opening = False
-                    self.x_scale = 480
+                    self.x_scale = self.box_width
 
                 self.set_box()
-                x = (UPSCALED[0] // 2) - self.display_surface.get_width() // 2
+                if self.type == 0:
+                    x = (UPSCALED[0] // 2) - self.background.get_width() // 2
+                else:
+                    x = (UPSCALED[0] // 2) - self.display_surface.get_width() // 2
                 y = 32
                 self.position = vec(x,y)
                 return
             
-            #   Closing box Animation   #
-            elif self.closing:
-                #   Each frame, upscale the x axis
-                self.x_scale -= 30
-                if self.x_scale <= 1:
-                    self.opening = False
-                    self.x_scale = 1
-                    self.finished = True
-                self.set_box()
-                x = UPSCALED[0] // 2 - self.display_surface.get_width() // 2
-                y = 32
-                self.position = vec(x,y)
-                return
-            
+            #   Fade out the characters inside the box  #
             elif self.fading:
                 self.alpha -= self.d_alpha
                 if self.alpha <= 0:
@@ -404,6 +431,25 @@ class TextManager(object):
                     self.display_surface.set_alpha(self.alpha)
                 
                 return
+            
+            #   Closing box Animation   #
+            elif self.closing:
+                #   Each frame, upscale the x axis
+                self.x_scale -= 30
+                if self.x_scale <= 1:
+                    self.opening = False
+                    self.x_scale = 1
+                    self.finished = True
+                self.set_box()
+                if self.type == 0:
+                    x = UPSCALED[0] // 2 - self.background.get_width() // 2
+                else:
+                    x = UPSCALED[0] // 2 - self.display_surface.get_width() // 2
+                y = 32
+                self.position = vec(x,y)
+                return
+            
+            
 
             #   Animate the box  #
             self.animation_timer += seconds
@@ -447,8 +493,8 @@ class TextManager(object):
 
             #   Check if the dialogue is finished   #
             if self.char_index == len(self.text):
-                self.waiting = True
-                EM.deactivate('interact')
+                self.wait()
                 self.end = True
+                self.clearing = True
 
                 

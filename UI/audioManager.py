@@ -12,11 +12,11 @@ import os
 
 class Track(object):
         """Represents an ost track"""
-        def __init__(self, intro, main, drums, outro=None):
+        def __init__(self, intro, main, drums, intro_drums):
             self.intro = intro
             self.main = main
             self.drums = drums
-            self.outro = outro
+            self.intro_drums = intro_drums
 
         def get_intro(self):
             return self.intro
@@ -27,8 +27,8 @@ class Track(object):
         def get_drums(self):
             return self.drums
         
-        def get_outro(self):
-            return self.outro
+        def get_intro_drums(self):
+            return self.intro_drums
         
 class AudioManager(object):
     """A singleton factory class to create and store sounds and music on demand."""
@@ -78,7 +78,8 @@ class AudioManager(object):
             #   Booleans    #
             self.currently_playing = False # True if currently playing a track
             self.playing_intro = False # True if an intro to a track is playing
-        
+            self.playing_drums = False
+
         def is_busy(self):
             return pygame.mixer.get_busy()
         
@@ -95,19 +96,26 @@ class AudioManager(object):
                 self.currently_playing = name
                 track = self.ost[name]
                 if play_drums:
-                    self.bgm_channel.play(track.get_drums_intro(), 0, fade_ms=fade_in)
+                    self.playing_drums = True
+                    self.drum_channel.play(track.get_intro_drums(), 0, fade_ms=fade_in)
                 else:
-                    self.bgm_channel.play(track.get_intro(), 0, fade_ms=fade_in)
+                    self.playing_drums = False
+                self.bgm_channel.play(track.get_intro(), 0, fade_ms=fade_in)
             
             else:
                 self.currently_playing = name
                 track = self.ost[name]
                 if play_drums:
+                    self.playing_drums = True
                     self.drum_channel.play(track.get_drums(), -1, fade_ms=fade_in)
+                else:
+                    self.playing_drums = False
                 self.bgm_channel.play(track.get_main(), -1, fade_ms=fade_in)
-            
+
             #   Set the volume  #
             self.bgm_channel.set_volume(volume)
+            self.drum_channel.set_volume(volume)
+
 
 
 
@@ -192,14 +200,19 @@ class AudioManager(object):
             if play_drums:
                 name = fullname + "_drums.wav"
                 drums = pygame.mixer.Sound(name)
+
+                name = fullname + "_drums_intro.wav"
+                drums_intro = pygame.mixer.Sound(name)
+
             else:
                 drums = None
+                drums_intro = None
 
             #   Add main
             name = fullname + "_main.wav"
             main = pygame.mixer.Sound(name)
 
-            self.ost[track_number] = Track(intro, main, drums, outro)
+            self.ost[track_number] = Track(intro, main, drums, drums_intro)
 
         def _loadVoice(self, name):
             """
@@ -236,3 +249,5 @@ class AudioManager(object):
                 if not self.bgm_channel.get_busy():
                     self.playing_intro = False
                     self.bgm_channel.play(self.get_current_track().get_main(), -1)
+                    if self.playing_drums:
+                        self.drum_channel.play(self.get_current_track().get_drums(), -1)

@@ -6,7 +6,8 @@ SM = SpriteManager.getInstance()
 
 class State(object):
     """Represents a state of animation"""
-    def __init__(self, file_name = 'null.png', starting_frame = 0, row = 0, fps = 8, num_frames = 1):
+    def __init__(self, file_name = 'null.png',
+                 starting_frame = 0, row = 0, fps = 8, num_frames = 1):
         #   Keep track of the state's data  #
         self.file_name = file_name
         self.starting_frame = starting_frame

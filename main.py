@@ -24,7 +24,7 @@ display_manager = DisplayManager.getInstance()
 
 
 #   Initialize the Display  #
-flags = pygame.SCALED #| pygame.FULLSCREEN#| pygame.NOFRAME | pygame.FULLSCREEN
+flags = pygame.SCALED# | pygame.FULLSCREEN #| pygame.NOFRAME
 screen = pygame.display.set_mode(list(map(int, UPSCALED)), flags=flags)
 drawSurface = pygame.Surface(list(map(int, SCREEN_SIZE)))
 # pygame.mouse.set_visible(False)

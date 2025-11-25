@@ -28,16 +28,44 @@ class Triangle(Surface):
         self.min_y = self.position[1] - d_y
 
         #   Define Animation data   #
-        self.fps = 64
+        self.motion_fps = 48
+        self.motion_timer = 0.0
+
+        self.nFrames = 8
+        self.frame = 0
+        self.row = 0
+        self.fps = 16
         self.animation_timer = 0.0
 
         #   Blit the actual sprite on the surface   #
-        self.blit(SM.getSprite("triangle.png"), (0,0))
+        self.blit(SM.getSprite("triangle.png", (0,0)), (0,0))
 
         #   Define Movement States #
         self.moving_up = False
         self.moving_down = True
+        self.update_motion = True
 
+        
+
+    def set_image(self):
+        super().__init__((32, 16), SRCALPHA)
+        self.blit(SM.getSprite("triangle.png", (self.frame, self.row)), vec(0,0))
+
+    def set_row(self, row: int):
+        self.row = row
+        self.set_image()
+
+        if row == 1:
+            self.motion_fps = 16
+            self.d_y = 2
+            self.max_y = self.position[1] + self.d_y
+            self.min_y = self.position[1] - self.d_y
+        else:
+            self.motion_fps = 48
+            self.d_y = 4
+            self.max_y = self.position[1] + self.d_y
+            self.min_y = self.position[1] - self.d_y
+        
     def set_position(self, new_position):
         """Update the triangle's positional data to support a new position"""
         new_position[0] += 32
@@ -48,24 +76,32 @@ class Triangle(Surface):
 
     def update(self, seconds):
         """Move the triangle up and down"""
+        #   Update the Motion   #
+        if self.update_motion:
+            self.motion_timer += seconds
+
+            if self.motion_timer >= 1/self.motion_fps:
+                self.motion_timer = 0.0
+                if self.moving_down:
+                    self.position[1] += 1
+                    if self.position[1] >= self.max_y:
+                        self.moving_down = False
+                        self.moving_up = True
+
+                elif self.moving_up:
+                    self.position[1] -= 1
+                    if self.position[1] <= self.min_y:
+                        self.moving_up = False
+                        self.moving_down = True
+            
+        #   Update the Animation    #
         self.animation_timer += seconds
 
         if self.animation_timer >= 1/self.fps:
             self.animation_timer = 0.0
-            if self.moving_down:
-                self.position[1] += 1
-                if self.position[1] >= self.max_y:
-                    self.moving_down = False
-                    self.moving_up = True
-
-            elif self.moving_up:
-                self.position[1] -= 1
-                if self.position[1] <= self.min_y:
-                    self.moving_up = False
-                    self.moving_down = True
-            
-        
-
+            self.frame += 1
+            self.frame %= self.nFrames
+            self.set_image()
 
 class TextShadow(Surface):
     def __init__(self, position = vec(16,0), d_y = 4):
@@ -95,7 +131,9 @@ class TextShadow(Surface):
 
     
     def set_position(self, position):
-        self.position = vec(position[0] + 16, position[1] + 16)
+        # self.position = vec(position[0] + 16, position[1] + 28)
+        self.position = vec(position[0], position[1])
+
 
     def set_image(self, width, color):
         self.img = Surface((width, 1), SRCALPHA)

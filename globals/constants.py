@@ -37,7 +37,8 @@ SPEECH = {
     *,but to no aveil.$$\
     A century ago, the %pAllies of the Universe%\n\
     were successfull in forcing the\n\
-    %rRevelers% to retreat back to their %ghomeworld%.$$\
+    %rRevelers% to retreat\n\
+    back to their %ghomeworld%.$$\
     My earliest memories are from around then,&&\n\
     aimlessly drifting through space,\n\
     watching a cataclysmic war\n\
@@ -48,7 +49,8 @@ SPEECH = {
     of the cosmos nourished me\n\
     with food and knowledge in return.$$\
     Now only %r11 Revelers% remain.&&\n\
-    They’ve survived on %gEarth% for half a century.$$\
+    They’ve survived on %gEarth%\n\
+    for half a century.$$\
     But today,*. I’ve decided to put an end\n\
     to this chapter of the universe's history.$$\
     I'll hunt down %rall 11% of them\n\
