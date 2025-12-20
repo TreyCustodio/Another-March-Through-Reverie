@@ -29,9 +29,22 @@ class Player(Drawable):
         #   State Dictionary    #
         self.states = {
             # state: [file_name, row, fps, nFrames, starting_frame]
-            'idle': State("samus.png", starting_frame=0, row=0, fps=8, num_frames=3),
+            'idle': State("samus.png", starting_frame=0, row=0, fps=16, num_frames=3),
             'idle_right': State("samus.png", 0, 10, 12, 3),
             'idle_left': State("samus.png", 0, 11, 12, 3),
+
+            'walking_right': State("samus.png", 0, 1, 24, 10),
+            'walking_left': State("samus.png", 0, 2, 24, 10),
+            
+            'jumping_right': State("samus.png", 0, 3, 32, 10),
+            'jumping_left': State("samus.png", 0, 4, 32, 10),
+        }
+
+        self.states = {
+            # state: [file_name, row, fps, nFrames, starting_frame]
+            'idle': State("weaver.png", starting_frame=0, row=0, fps=16, num_frames=48),
+            'idle_right': State("weaver.png", 0, 0, 16, 48),
+            'idle_left': State("weaver.png", 0, 0, 16, 48),
 
             'walking_right': State("samus.png", 0, 1, 24, 10),
             'walking_left': State("samus.png", 0, 2, 24, 10),
@@ -45,6 +58,7 @@ class Player(Drawable):
         self.frame = 0
         self.animation_timer = 0.0
         self.shadow = Drawable(vec(self.position[0] - 8, self.position[1]), "samus.png", (0,0))
+        self.set_image()
 
         #   Camera Properties   #
         p = position.copy()
@@ -161,8 +175,8 @@ class Player(Drawable):
         new_image = SM.getSprite(file_name, (self.frame, row))
         super().set_image(new_image)
 
-        shadow_image = SM.getSprite('samus.png', (self.frame, row+5))
-        self.shadow.set_image(shadow_image)
+        # shadow_image = SM.getSprite('samus.png', (self.frame, row+5))
+        # self.shadow.set_image(shadow_image)
 
     def get_current_state(self):
         return self.states[self.state]

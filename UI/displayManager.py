@@ -77,7 +77,7 @@ class DisplayManager(object):
             self.draw_black(drawSurf)
 
             #   FPS #
-            self.draw_fps(drawSurf)
+            # self.draw_fps(drawSurf)
 
             return
         
@@ -107,6 +107,10 @@ class DisplayManager(object):
 
             #   Another March (White)
             text_surface = fnt.render('Another March', True, (255, 254, 184))
+            black_surface = fnt.render('Another March', True, (255, 254, 184))
+            
+
+
             self.display_objects[0] = (Fading(text_surface, d_a=2), vec(UPSCALED[0] // 2 - text_surface.get_width() //2, text_surface.get_height() + delta))
             self.display_objects[0][0].fade_in()
 
@@ -129,10 +133,41 @@ class DisplayManager(object):
 
 
         def title_routine(self, drawSurf) -> None:
+            #   Draw background (optional)  #
+            # bk = Drawable(vec(0,0), os.path.join("mountains_Lesiakower.png"))
+            # bk.image = transform.scale(bk.image, (640 // 2, 427 // 2))
+            # bk.draw(drawSurf)
+
+            fnt = font.Font(os.path.join("UI", "fonts", 'PressStart2P.ttf'), 16)
+            delta = 48
+            
+            black_surface1 = fnt.render('Another March', True, (0,0,0))
+            black_surface2 = fnt.render('Through Reverie', True, (0,0,0))
+
+            offset1 = (-1, -1)
+            offset2 = (1, 1)
+            offset3 = (1, -1)
+            offset4 = (-1, 1)
+
+
+            drawSurf.blit(black_surface1, vec(UPSCALED[0] // 2 - black_surface1.get_width() //2, black_surface1.get_height() + delta) + offset1)
+            drawSurf.blit(black_surface2, vec(UPSCALED[0] // 2 - black_surface2.get_width() //2, (black_surface2.get_height() * 2.5 + delta)) + offset1)
+
+            drawSurf.blit(black_surface1, vec(UPSCALED[0] // 2 - black_surface1.get_width() //2, black_surface1.get_height() + delta) + offset2)
+            drawSurf.blit(black_surface2, vec(UPSCALED[0] // 2 - black_surface2.get_width() //2, (black_surface2.get_height() * 2.5 + delta)) + offset2)
+
+            drawSurf.blit(black_surface1, vec(UPSCALED[0] // 2 - black_surface1.get_width() //2, black_surface1.get_height() + delta) + offset3)
+            drawSurf.blit(black_surface2, vec(UPSCALED[0] // 2 - black_surface2.get_width() //2, (black_surface2.get_height() * 2.5 + delta)) + offset3)
+
+            drawSurf.blit(black_surface1, vec(UPSCALED[0] // 2 - black_surface1.get_width() //2, black_surface1.get_height() + delta) + offset4)
+            drawSurf.blit(black_surface2, vec(UPSCALED[0] // 2 - black_surface2.get_width() //2, (black_surface2.get_height() * 2.5 + delta)) + offset4)
+
+
             #   Typical Draw Routine when selecting new/load    #
             if self.display_int == 8:
                 if self.title_timer >= self.title_wait:
                     TITLE.draw(drawSurf)
+                    pass
                 for i in range(len(self.display_objects)):
                     self.draw_object(drawSurf, i)
 

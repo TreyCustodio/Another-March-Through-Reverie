@@ -35,7 +35,7 @@ class Room(object):
         self.size = vec(UPSCALED[0] * 20, UPSCALED[1])
         self.player = PlayerLoader.get_player()
         self.floor = UPSCALED[1] - UPSCALED[1] // 4
-        self.player.set_position(vec(UPSCALED[0] // 2 - self.player.get_width() // 2, UPSCALED[1] - UPSCALED[1] // 4 - self.player.get_height()))
+        self.player.set_position(vec(UPSCALED[0] // 2 - self.player.get_width() // 2, self.floor - self.player.get_height()))
         
         #   BGM #
         self.bgm = bgm
