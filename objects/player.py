@@ -49,8 +49,8 @@ class Player(Drawable):
             'walking_right': State("samus.png", 0, 1, 24, 10),
             'walking_left': State("samus.png", 0, 2, 24, 10),
             
-            'jumping_right': State("samus.png", 0, 3, 32, 10),
-            'jumping_left': State("samus.png", 0, 4, 32, 10),
+            'jumping_right': State("weaver_jump.png", row = 0, starting_frame = 0, fps = 16, num_frames = 13),
+            'jumping_left': State("weaver_jump.png", row = 1, starting_frame = 0, fps = 16, num_frames = 13),
         }
 
         #   Animation Properties    #
@@ -105,7 +105,47 @@ class Player(Drawable):
 
     def get_collision_rect(self):
         return Rect(self.position, (self.get_width(), self.get_height()))
-        
+    
+    def draw_shadows(self, drawSurf):
+        if abs(self.vel[0]) >= self.max_speed:
+            if self.state == 'walking_left' or self.state == 'jumping_left':
+                self.shadow.set_position(vec(self.position[0] + 18, self.position[1]))
+                self.shadow.draw(drawSurf)
+                self.shadow.set_position(vec(self.position[0] + 12, self.position[1]))
+                self.shadow.draw(drawSurf)
+                self.shadow.set_position(vec(self.position[0] + 6, self.position[1]))
+                self.shadow.draw(drawSurf)
+            
+            elif self.state == 'walking_right' or self.state == 'jumping_right':
+                self.shadow.set_position(vec(self.position[0] - 18, self.position[1]))
+                self.shadow.draw(drawSurf)
+                self.shadow.set_position(vec(self.position[0] - 12, self.position[1]))
+                self.shadow.draw(drawSurf)
+                self.shadow.set_position(vec(self.position[0] - 6, self.position[1]))
+                self.shadow.draw(drawSurf)
+                    
+        elif abs(self.vel[0]) >= ((self.max_speed // 3) * 2):
+            if self.state == 'walking_left' or self.state == 'jumping_left':
+                self.shadow.set_position(vec(self.position[0] + 12, self.position[1]))
+                self.shadow.draw(drawSurf)
+                self.shadow.set_position(vec(self.position[0] + 6, self.position[1]))
+                self.shadow.draw(drawSurf)
+            
+            elif self.state == 'walking_right' or self.state == 'jumping_right':
+                self.shadow.set_position(vec(self.position[0] - 12, self.position[1]))
+                self.shadow.draw(drawSurf)
+                self.shadow.set_position(vec(self.position[0] - 6, self.position[1]))
+                self.shadow.draw(drawSurf)
+
+        elif abs(self.vel[0]) >= ((self.max_speed // 3)):
+            if self.state == 'walking_left' or self.state == 'jumping_left':
+                self.shadow.set_position(vec(self.position[0] + 6, self.position[1]))
+                self.shadow.draw(drawSurf)
+            
+            elif self.state == 'walking_right' or self.state == 'jumping_right':
+                self.shadow.set_position(vec(self.position[0] - 6, self.position[1]))
+                self.shadow.draw(drawSurf)
+
     def draw(self, drawSurf):
         if not self.visible:
             return
@@ -114,45 +154,10 @@ class Player(Drawable):
             pass
 
         else:
+            pass
             #   Draw Max Speed Shadow   #
-            if abs(self.vel[0]) >= self.max_speed:
-                if self.state == 'walking_left' or self.state == 'jumping_left':
-                    self.shadow.set_position(vec(self.position[0] + 18, self.position[1]))
-                    self.shadow.draw(drawSurf)
-                    self.shadow.set_position(vec(self.position[0] + 12, self.position[1]))
-                    self.shadow.draw(drawSurf)
-                    self.shadow.set_position(vec(self.position[0] + 6, self.position[1]))
-                    self.shadow.draw(drawSurf)
-                
-                elif self.state == 'walking_right' or self.state == 'jumping_right':
-                    self.shadow.set_position(vec(self.position[0] - 18, self.position[1]))
-                    self.shadow.draw(drawSurf)
-                    self.shadow.set_position(vec(self.position[0] - 12, self.position[1]))
-                    self.shadow.draw(drawSurf)
-                    self.shadow.set_position(vec(self.position[0] - 6, self.position[1]))
-                    self.shadow.draw(drawSurf)
-                        
-            elif abs(self.vel[0]) >= ((self.max_speed // 3) * 2):
-                if self.state == 'walking_left' or self.state == 'jumping_left':
-                    self.shadow.set_position(vec(self.position[0] + 12, self.position[1]))
-                    self.shadow.draw(drawSurf)
-                    self.shadow.set_position(vec(self.position[0] + 6, self.position[1]))
-                    self.shadow.draw(drawSurf)
-                
-                elif self.state == 'walking_right' or self.state == 'jumping_right':
-                    self.shadow.set_position(vec(self.position[0] - 12, self.position[1]))
-                    self.shadow.draw(drawSurf)
-                    self.shadow.set_position(vec(self.position[0] - 6, self.position[1]))
-                    self.shadow.draw(drawSurf)
-
-            elif abs(self.vel[0]) >= ((self.max_speed // 3)):
-                if self.state == 'walking_left' or self.state == 'jumping_left':
-                    self.shadow.set_position(vec(self.position[0] + 6, self.position[1]))
-                    self.shadow.draw(drawSurf)
-                
-                elif self.state == 'walking_right' or self.state == 'jumping_right':
-                    self.shadow.set_position(vec(self.position[0] - 6, self.position[1]))
-                    self.shadow.draw(drawSurf)
+            # self.draw_shadows(drawSurf)
+            
         
         #   Display the velocity    #
         # velocity = str(round(self.vel[0], 2))

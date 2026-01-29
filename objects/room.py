@@ -179,10 +179,10 @@ class Room(object):
 
 class Mid_1(Room):
     def __init__(self):
-        super().__init__(bgm="WR")
+        super().__init__(bgm="04")
 
         #   Art #
-        bk = Drawable(vec(0,0), os.path.join("red.png"))
+        bk = Drawable(vec(0,0), os.path.join("middleground.png"))
         bk.image = transform.scale(bk.image, SCREEN_SIZE)
         self.background = [bk]
                            
@@ -253,7 +253,9 @@ class Mid_1(Room):
     
 class Und_1(Room):
     def __init__(self):
+        # super().__init__(bgm="07")
         super().__init__(bgm="07")
+
 
         #   Art #
         bk = Drawable(vec(0,0), os.path.join("mountains_Lesiakower.png"))
