@@ -92,7 +92,7 @@ class Fading(Surface):
 
 class Black(Fading):
     def __init__(self):
-        super().__init__(d_a=4)
+        super().__init__(d_a=4, transparent=False)
         self.fill((0,0,0,255))
 
     def update(self, seconds):

@@ -35,7 +35,11 @@ class DisplayManager(object):
                 'fading_out': False, # Black alpha increasing
                 'fading_in': False, # Black alpha decreasing
                 'title': True,
+                'in_game': False
             }
+
+            #   Spare Booleans  #
+            self.title_fading = False
 
             #   Array containing priotity objects that need to be displayed  #
             self.display_objects = [None]
@@ -50,7 +54,7 @@ class DisplayManager(object):
             #   Timers and Counters #
             self.display_int = 0
             self.title_timer = 0.0
-            self.title_wait = 0.7
+            self.title_wait = 0.65
             self.fps = 0.0
 
             #   Currently loaded room   #
@@ -64,20 +68,28 @@ class DisplayManager(object):
             # drawSurf.blit(self.bkg, vec(0,0))
             self.draw_background(drawSurf)
 
-
             #   Draw Title  #
             if self.states['title']:
-                self.title_routine(drawSurf)
-            
+                if TITLE.start_new or TITLE.load:
+                    self.draw_title_bg(drawSurf)
+                    self.title_routine(drawSurf)
+                    self.draw_black(drawSurf)
+
+                else:
+                    self.draw_title_bg(drawSurf)
+                    self.draw_black(drawSurf)
+                    self.title_routine(drawSurf)
+                return
+                
             #   Draw Game   #
             elif self.states['in_game']:
                 self.draw_game(drawSurf)
-
+            
             #   Fading  #
             self.draw_black(drawSurf)
 
             #   FPS #
-            # self.draw_fps(drawSurf)
+            self.draw_fps(drawSurf)
 
             return
         
@@ -133,11 +145,6 @@ class DisplayManager(object):
 
 
         def title_routine(self, drawSurf) -> None:
-            #   Draw background (optional)  #
-            # bk = Drawable(vec(0,0), os.path.join("mountains_Lesiakower.png"))
-            # bk.image = transform.scale(bk.image, (640 // 2, 427 // 2))
-            # bk.draw(drawSurf)
-
             fnt = font.Font(os.path.join("UI", "fonts", 'PressStart2P.ttf'), 16)
             delta = 48
             
@@ -148,6 +155,11 @@ class DisplayManager(object):
             offset2 = (1, 1)
             offset3 = (1, -1)
             offset4 = (-1, 1)
+
+            offset5 = (-2, -2)
+            offset6 = (2, 2)
+            offset7 = (2, -2)
+            offset8 = (-2, 2)
 
 
             drawSurf.blit(black_surface1, vec(UPSCALED[0] // 2 - black_surface1.get_width() //2, black_surface1.get_height() + delta) + offset1)
@@ -165,13 +177,21 @@ class DisplayManager(object):
 
             #   Typical Draw Routine when selecting new/load    #
             if self.display_int == 8:
+                if not self.black.transparent:
+                    self.fade_in()
+
                 if self.title_timer >= self.title_wait:
                     TITLE.draw(drawSurf)
-                    pass
+                    self.display_int = 9
+
                 for i in range(len(self.display_objects)):
                     self.draw_object(drawSurf, i)
-
                 return
+            
+            elif self.display_int == 9:
+                TITLE.draw(drawSurf)
+                for i in range(len(self.display_objects)):
+                    self.draw_object(drawSurf, i)
 
             #   Display Opening Credits and make the title appear   #
             if self.display_int == 0:
@@ -207,7 +227,12 @@ class DisplayManager(object):
                 for i in range(len(self.display_objects)):
                     self.draw_object(drawSurf, i)
                 
+                
+                
+                
 
+        def draw_title_bg(self, drawSurf) -> None:
+            TITLE.draw_bg(drawSurf)
 
         
         def draw_game(self, drawSurf) -> None:
@@ -225,14 +250,14 @@ class DisplayManager(object):
             """Receive interpretations from the event manager and update the display manager's states accordingly"""
             if self.states['title']:
                 #   Selecting Menu Option   #
-                if self.display_int == 8 and self.title_timer >= self.title_wait and not(TITLE.start_new or TITLE.load):
+                if (self.display_int == 9) and self.title_timer >= self.title_wait and not(TITLE.start_new or TITLE.load):
                     TITLE.handle_events()
 
                     #   Transition to game
                     if TITLE.start_new:
                         AM.fadeout_bgm(1500)
                         self.fade_out()
-
+                        
                     elif TITLE.load:
                         AM.fadeout_bgm(1500)
                         self.fade_out()
@@ -262,6 +287,15 @@ class DisplayManager(object):
             if EVENT_MANAGER.perform_action('attack1'):
                 self.fade_in()
 
+        def fading(self) -> bool:
+            return self.states['fading_out'] or self.states['fading_in']
+        
+        def fading_in(self) -> bool:
+            return self.states['fading_in']
+
+        def fading_out(self) -> bool:
+            return self.states['fading_out']
+        
         def fade_out(self) -> None:
             self.states['fading_out'] = True
             self.states['fading_in'] = False
@@ -290,6 +324,7 @@ class DisplayManager(object):
             self.display_objects = []
             self.display_int = 0
             TITLE = None
+            
             # RM.set_next_room(Und_1)
             RM.set_next_room(Mid_1)
 
@@ -355,6 +390,21 @@ class DisplayManager(object):
                     else:
                         self.title_timer += seconds
 
+                if self.display_int == 9:
+                    TITLE.update(seconds)
+                    TITLE.update_bg(seconds)
+
+                    if self.title_fading:
+                        if not self.fading():
+                            TITLE.set_image()
+                            self.title_fading = False
+                            self.fade_in()
+
+                    elif TITLE.ready_to_fade:
+                        self.fade_out()
+                        self.title_fading = True
+
+
             elif self.states['in_game']:
                 RM.get_current_room().update(seconds)
 
@@ -362,7 +412,7 @@ class DisplayManager(object):
                     self.fade_out()
 
 
-            if self.states['fading_out'] or self.states['fading_in']:
+            if self.fading():
                 self.black.update(seconds)
 
                 if self.black.opaque:
@@ -372,7 +422,7 @@ class DisplayManager(object):
                     #   Change states based on Fading   #
                     if self.states['title']:
                         #   Switch to intro cutscene / game
-                        if self.display_int == 8:
+                        if self.display_int == 9:
                             if TITLE.start_new:
                                 self.start_new()
                                 self.fade_in()

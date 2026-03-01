@@ -11,6 +11,8 @@ from .enemy import *
 from globals import SCREEN_SIZE, UPSCALED, SCALE_FACTOR, vec, SPEECH
 from UI import SpriteManager, AudioManager, EventManager
 
+from utils import load_room
+
 SM = SpriteManager.getInstance()
 TM = TextManager.getInstance()
 EM = EventManager.getInstance()
@@ -31,7 +33,8 @@ class Tile(Drawable):
         drawSurf.blit(self.image, list(map(int, self.position - Drawable.CAMERA_OFFSET)))
 
 class Room(object):
-    def __init__(self, bgm="02", vol=2):
+    def __init__(self, bgm="02", vol=2, name = "default_room"):
+        self.name = name
         self.size = vec(UPSCALED[0] * 20, UPSCALED[1])
         self.player = PlayerLoader.get_player()
         self.floor = UPSCALED[1] - UPSCALED[1] // 4
@@ -67,8 +70,13 @@ class Room(object):
         #   Tiles   #
         self.tiles = []
 
+        self.load()
 
-    def draw(self, drawSurf):
+    # abstract function
+    def load(self):
+        return
+    
+    def draw(self, drawSurf, draw_player = True, draw_collision = False):
         for b in self.background:
             drawSurf.blit(b.image, vec(0,0))
             # b.draw(drawSurf)
@@ -91,7 +99,8 @@ class Room(object):
             e.draw(drawSurf)
 
         #   Player  #
-        self.player.draw(drawSurf)
+        if draw_player:
+            self.player.draw(drawSurf)
 
         #   Foreground  #
         for f in self.foreground:
@@ -102,10 +111,10 @@ class Room(object):
         # drawSurf.blit(fg, vec(0, SCREEN_SIZE[1] - SCREEN_SIZE[1] // 4))
 
         for t in self.tiles:
-            t.draw(drawSurf)
+            t.draw(drawSurf, draw_collision)
 
         #   Dialogue    #
-        if self.speaking:
+        if draw_player and self.speaking:
             TM.draw(drawSurf)
 
     def handle_events(self):
@@ -179,35 +188,14 @@ class Room(object):
 
 class Mid_1(Room):
     def __init__(self):
-        super().__init__(bgm="04")
-
+        super().__init__(bgm="04", name="mid_1")
+        
         #   Art #
         bk = Drawable(vec(0,0), os.path.join("middleground.png"))
         bk.image = transform.scale(bk.image, SCREEN_SIZE)
         self.background = [bk]
                            
-        
-        # self.background = []
-        # num_images = ceil(self.size[0] / 320)
-        # num_rows = 2
-
-        # for i in range(0, num_images + 1):
-        #     for j in range(num_rows):
-        #         self.background.append(Drawable(vec(i*320,j*180), os.path.join("sunset","background.png")))
-       
-        # self.layers = []
-        # for i in range(0,num_images+1):
-        #     for j in range(1,num_rows):
-        #         for k in range(1,4):
-        #             string = str(k) + '.png'
-        #             self.layers.append(Drawable(vec(i*320,j*180), os.path.join("sunset", string)))
-
         self.foreground = []
-        # for i in range(0,num_images):
-        #     for j in range(1,num_rows):
-        #         self.foreground.append(Drawable(vec(i*320,j*180), os.path.join("sunset","foreground.png")))
-        
-        
 
         Drawable.updateOffsetPos(self.player.cam_pos, self.size)
 
@@ -224,22 +212,12 @@ class Mid_1(Room):
         #   Camera  #
 
         #   Tiles   #
-        self.tileset = "mid.png"
-        self.tiles = []
-
-        for x in range(0, int(self.size[0]), 16):
-            for y in range(int(self.floor) + 16, int(self.size[1]), 16):
-                self.tiles += [
-                    Tile(vec(x, y), self.tileset, (0,0))
-                ]
-
-            self.tiles += [
-                Tile(vec(x, self.floor-16), self.tileset, (2,0)),
-                Tile(vec(x, self.floor), self.tileset, (2,1))
-                ]
-            
         self.player.set_visible()
     
+    def load(self):
+        """Load the room's assets by calling the builder function"""
+        load_room(self)
+            
     def play_bgm(self):
         AM.play_ost(self.bgm, volume=self.bgm_volume, play_drums=False, play_intro = False)
         self.playing_bgm = True

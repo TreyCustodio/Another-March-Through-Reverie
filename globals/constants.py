@@ -49,7 +49,7 @@ SPEECH = {
     of the cosmos nourished me\n\
     with food and knowledge in return.$$\
     Now only %r11 Revelers% remain.&&\n\
-    They’ve survived on %gEarth%\n\
+    They’ve taken refuge on %gEarth%\n\
     for half a century.$$\
     But today,*. I’ve decided to put an end\n\
     to this chapter of the universe's history.$$\
@@ -58,7 +58,7 @@ SPEECH = {
     However, traversing %gEarth% is like\n\
     stepping foot directly into into\n\
     a %rpredator’s claws%.$$\
-    I’m no rabbit, but I’m hunting\n\
+    I’m no rabbit, but I am hunting\n\
     the universe’s %rapex predator%.&&\n\
     What they lack in numbers,\n\
     they far make up for in knowledge\n\

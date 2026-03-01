@@ -58,7 +58,13 @@ class SpriteManager(object):
          'luigi.png': (32, 52),
          
          #  Enemies  #
-         'raven_b.png': (22, 18)
+         'raven_b.png': (22, 18),
+
+         #  Backgrounds #
+         'sunset1.png': (1280, 40),
+         'night.png': (1280, 40),
+         'night2.png': (1280, 40),
+
       }
       
 
