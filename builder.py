@@ -37,8 +37,8 @@ start_time = time.time()
 fps = 0.0
 frame_count = 0
 gameClock = pygame.time.Clock()
-
-editor.load()
+_editor = editor.Editor()
+_editor.load()
 
 #   Main Loop   #
 RUNNING = True
@@ -48,12 +48,12 @@ while RUNNING:
                             list(map(int, UPSCALED)),
                             screen)
     pygame.display.flip()
-    editor.draw(drawSurface)
+    _editor.draw(drawSurface)
 
 
 
     #   (2) Handle Events   #
-    RUNNING = editor.handle_events()
+    RUNNING = _editor.handle_events()
     if not RUNNING:
         pygame.quit()
         sys.exit()
@@ -66,4 +66,4 @@ while RUNNING:
         seconds = gameClock.get_time() / 1000
 
         #   Update the modules  #
-        editor.update(seconds)
+        _editor.update(seconds)

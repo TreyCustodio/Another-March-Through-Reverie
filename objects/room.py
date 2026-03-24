@@ -5,22 +5,22 @@ from pygame import Surface, SRCALPHA, Rect, draw, transform
 
 from . import PlayerLoader, Drawable, TextManager, Interactable, GlowingBox, TextShadow,\
 Weegee
-
 from .enemy import *
-
 from globals import SCREEN_SIZE, UPSCALED, SCALE_FACTOR, vec, SPEECH
 from UI import SpriteManager, AudioManager, EventManager
-
 from utils import load_room
 
+"""
+Room Engine Code
+"""
+
+# ===== Required Singleton Classes ====== #
 SM = SpriteManager.getInstance()
 TM = TextManager.getInstance()
 EM = EventManager.getInstance()
 AM = AudioManager.getInstance()
 
-
-    
-    
+# ==== Helper Objects ====== #
 class Tile(Drawable):
     """Basic tile. No Collsion"""
     def __init__(self, position, file_name, offset, size = vec(16,16), property = 0):
@@ -32,6 +32,7 @@ class Tile(Drawable):
     def draw(self, drawSurf):
         drawSurf.blit(self.image, list(map(int, self.position - Drawable.CAMERA_OFFSET)))
 
+# === Abstract Room Class ==== #
 class Room(object):
     def __init__(self, bgm="02", vol=2, name = "default_room"):
         self.name = name
@@ -180,102 +181,20 @@ class Room(object):
         self.ready_to_transition = True
         AM.fadeout_bgm()
 
+class RoomManager(object):
+    """Manages the currently loaded room;
+    ensures that only 1 room and its assets are loaded at once"""
+    CURRENT_ROOM = None
 
-
-
-
-
-
-class Mid_1(Room):
-    def __init__(self):
-        super().__init__(bgm="04", name="mid_1")
-        
-        #   Art #
-        bk = Drawable(vec(0,0), os.path.join("middleground.png"))
-        bk.image = transform.scale(bk.image, SCREEN_SIZE)
-        self.background = [bk]
-                           
-        self.foreground = []
-
-        Drawable.updateOffsetPos(self.player.cam_pos, self.size)
-
-        #   Lists of objects in the room    #
-        self.npcs = [
-            Weegee(vec(self.player.position[0] + 64, self.floor))
-        ]
-        self.npcs[0].position[1] -= self.npcs[0].get_height()
-
-        self.enemies = [
-            Raven(vec(16*8, self.floor))
-        ]
-        self.unloaded_enemies = []
-        #   Camera  #
-
-        #   Tiles   #
-        self.player.set_visible()
+    def set_next_room(self, room) -> None:
+        del RoomManager.CURRENT_ROOM
+        RoomManager.CURRENT_ROOM = room()
     
-    def load(self):
-        """Load the room's assets by calling the builder function"""
-        load_room(self)
-            
-    def play_bgm(self):
-        AM.play_ost(self.bgm, volume=self.bgm_volume, play_drums=False, play_intro = False)
-        self.playing_bgm = True
-
-    def handle_events(self):
-        super().handle_events()
-        #   Test Dialogue   #
-        if EM.perform_action('space'):
-            txt = "Greetings.&&\nWelcome to reverie.$$It's been a while,\nhuh?$$Today I've got a pocket\nfull of chimp change.$$Glorious day."
-            self.display_text(txt, row=0)
+    def get_current_room(self) -> Room:
+        return RoomManager.CURRENT_ROOM
     
-class Und_1(Room):
-    def __init__(self):
-        # super().__init__(bgm="07")
-        super().__init__(bgm="07")
-
-
-        #   Art #
-        bk = Drawable(vec(0,0), os.path.join("mountains_Lesiakower.png"))
-        bk.image = transform.scale(bk.image, (640 // 2, 427 // 2))
-        self.background = [bk]
-
-        #   Camera  #
-        Drawable.updateOffsetPos(self.player.cam_pos, self.size)
-
-        #   Tiles   #
-        #   Need to only draw tiles within the camera's view and the player's path
-        self.tileset = "ice.png"
-        self.tiles = []
-
-        for x in range(0, int(self.size[0]), 16):
-            for y in range(int(self.floor) + 16, int(self.size[1]), 16):
-                self.tiles += [
-                    Tile(vec(x, y), self.tileset, (0,0))
-                ]
-
-            self.tiles += [
-                Tile(vec(x, self.floor-16), self.tileset, (2,0)),
-                Tile(vec(x, self.floor), self.tileset, (2,1))
-                ]
-        
-       
-        self.enemies = [
-            Raven(vec(16*8, self.floor - 18))
-        ]
-        self.player.set_visible()
-    
-    def play_bgm(self):
-        AM.play_ost(self.bgm, volume=self.bgm_volume, play_drums=False, play_intro = True)
-        self.playing_bgm = True
-
-    def handle_events(self):
-        super().handle_events()
-        #   Test Dialogue   #
-        if EM.perform_action('space'):
-            txt = "Greetings.&&\nWelcome to reverie.$$It's been a while,\nhuh?$$Today I've got a pocket\nfull of chimp change.$$Glorious day."
-            self.display_text(txt, row=0)
-
+# ======== Cutscenes ======= #
+# --- Intro Cutscene --- #
 class Intro(Room):
     def __init__(self):
         super().__init__(bgm="02")
@@ -357,6 +276,7 @@ class Intro(Room):
 
         super().update(seconds, play_music = False, update_bgm=False)
 
+# --- Naming the Player --- #
 class Name(Room):
     def __init__(self):
         super().__init__(bgm="03", vol=20)
@@ -642,14 +562,97 @@ class Name(Room):
             self.name_box.update(seconds)
             self.face_box.update(seconds)
             self.entry_box.update(seconds)
+            
+
+# ======== Playable Scenes ======== #
+# --- Middleground 1 --- #
+class Mid_1(Room):
+    def __init__(self):
+        super().__init__(bgm="04", name="mid_1")
         
+        #   Art #
+        bk = Drawable(vec(0,0), os.path.join("middleground.png"))
+        bk.image = transform.scale(bk.image, SCREEN_SIZE)
+        self.background = [bk]
+                           
+        self.foreground = []
 
-class RoomManager(object):
-    CURRENT_ROOM = None
+        Drawable.updateOffsetPos(self.player.cam_pos, self.size)
 
-    def set_next_room(self, room):
-        del RoomManager.CURRENT_ROOM
-        RoomManager.CURRENT_ROOM = room()
+        #   Lists of objects in the room    #
+        self.npcs = [
+            Weegee(vec(self.player.position[0] + 64, self.floor))
+        ]
+        self.npcs[0].position[1] -= self.npcs[0].get_height()
+
+        self.enemies = [
+            Raven(vec(16*8, self.floor))
+        ]
+        self.unloaded_enemies = []
+        #   Camera  #
+
+        #   Tiles   #
+        self.player.set_visible()
     
-    def get_current_room(self) -> Room:
-        return RoomManager.CURRENT_ROOM
+    def load(self):
+        """Load the room's assets by calling the builder function"""
+        load_room(self)
+            
+    def play_bgm(self):
+        AM.play_ost(self.bgm, volume=self.bgm_volume, play_drums=False, play_intro = False)
+        self.playing_bgm = True
+
+    def handle_events(self):
+        super().handle_events()
+        #   Test Dialogue   #
+        if EM.perform_action('space'):
+            txt = "Greetings.&&\nWelcome to reverie.$$It's been a while,\nhuh?$$Today I've got a pocket\nfull of chimp change.$$Glorious day."
+            self.display_text(txt, row=0)
+
+# --- Underground Ice 1 --- #
+class Und_1(Room):
+    def __init__(self):
+        # super().__init__(bgm="07")
+        super().__init__(bgm="07")
+
+
+        #   Art #
+        bk = Drawable(vec(0,0), os.path.join("mountains_Lesiakower.png"))
+        bk.image = transform.scale(bk.image, (640 // 2, 427 // 2))
+        self.background = [bk]
+
+        #   Camera  #
+        Drawable.updateOffsetPos(self.player.cam_pos, self.size)
+
+        #   Tiles   #
+        #   Need to only draw tiles within the camera's view and the player's path
+        self.tileset = "ice.png"
+        self.tiles = []
+
+        for x in range(0, int(self.size[0]), 16):
+            for y in range(int(self.floor) + 16, int(self.size[1]), 16):
+                self.tiles += [
+                    Tile(vec(x, y), self.tileset, (0,0))
+                ]
+
+            self.tiles += [
+                Tile(vec(x, self.floor-16), self.tileset, (2,0)),
+                Tile(vec(x, self.floor), self.tileset, (2,1))
+                ]
+        
+       
+        self.enemies = [
+            Raven(vec(16*8, self.floor - 18))
+        ]
+        self.player.set_visible()
+    
+    def play_bgm(self):
+        AM.play_ost(self.bgm, volume=self.bgm_volume, play_drums=False, play_intro = True)
+        self.playing_bgm = True
+
+    def handle_events(self):
+        super().handle_events()
+        #   Test Dialogue   #
+        if EM.perform_action('space'):
+            txt = "Greetings.&&\nWelcome to reverie.$$It's been a while,\nhuh?$$Today I've got a pocket\nfull of chimp change.$$Glorious day."
+            self.display_text(txt, row=0)
