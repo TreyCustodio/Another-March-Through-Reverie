@@ -615,7 +615,6 @@ class Und_1(Room):
         # super().__init__(bgm="07")
         super().__init__(bgm="07")
 
-
         #   Art #
         bk = Drawable(vec(0,0), os.path.join("mountains_Lesiakower.png"))
         bk.image = transform.scale(bk.image, (640 // 2, 427 // 2))

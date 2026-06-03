@@ -78,8 +78,8 @@ class Title(object):
 
     def initialize(self):
         #   Play the title theme    #
-        # AM.play_ost("01", play_intro=True, play_drums = False)
-        AM.play_ost("15", play_intro=True, play_drums = False)
+        AM.play_ost("01", play_intro=True, play_drums = False)
+        # AM.play_ost("15", play_intro=True, play_drums = False)
 
 
         #   Initialize the pointer  #
