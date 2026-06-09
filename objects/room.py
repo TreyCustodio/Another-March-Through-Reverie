@@ -34,6 +34,7 @@ class Tile(Drawable):
 
 # === Abstract Room Class ==== #
 class Room(object):
+    """Draws the game, handles collision, handles events, and updates the world"""
     def __init__(self, bgm="02", vol=2, name = "default_room"):
         self.name = name
         self.size = vec(UPSCALED[0] * 20, UPSCALED[1])
@@ -423,7 +424,7 @@ class Name(Room):
         super().handle_events()
     
     def play_bgm(self):
-        AM.play_ost(self.bgm, volume=20.0, play_drums=False, play_intro = False)
+        AM.play_ost(self.bgm, volume=20.0, play_drums=False, play_intro = True)
         self.playing_bgm = True
 
     def draw(self, drawSurf):
@@ -599,7 +600,7 @@ class Mid_1(Room):
         load_room(self)
             
     def play_bgm(self):
-        AM.play_ost(self.bgm, volume=self.bgm_volume, play_drums=False, play_intro = False)
+        AM.play_ost(self.bgm, volume=self.bgm_volume, play_drums=False, play_intro = True)
         self.playing_bgm = True
 
     def handle_events(self):

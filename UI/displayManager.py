@@ -326,7 +326,7 @@ class DisplayManager(object):
             TITLE = None
             
             # RM.set_next_room(Und_1)
-            RM.set_next_room(Und_1)
+            RM.set_next_room(Mid_1)
 
 
         def load_next(self, room):
