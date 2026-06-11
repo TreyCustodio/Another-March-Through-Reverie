@@ -3,7 +3,7 @@ import os
 
 from pygame import Surface, SRCALPHA, Rect, draw, transform
 
-from . import PlayerLoader, Drawable, TextManager, Interactable, GlowingBox, TextShadow,\
+from . import PlayerLoader, Drawable, TextManager, HudManager, Interactable, GlowingBox, TextShadow,\
 Weegee
 from .enemy import *
 from globals import SCREEN_SIZE, UPSCALED, SCALE_FACTOR, vec, SPEECH
@@ -19,6 +19,7 @@ SM = SpriteManager.getInstance()
 TM = TextManager.getInstance()
 EM = EventManager.getInstance()
 AM = AudioManager.getInstance()
+HM = HudManager.getInstance()
 
 # ==== Helper Objects ====== #
 class Tile(Drawable):
@@ -53,6 +54,7 @@ class Room(object):
         self.speaking = False # in dialogue
         self.in_cutscene = False
         self.ready_to_transition = False
+        self.display_hud = True
         self.next_room = Mid_1
 
         #   Cutscene control    #
@@ -68,11 +70,16 @@ class Room(object):
         self.npcs = []
         self.enemies = []
         self.unloaded_enemies = []
+        self.weapons = []
+        self.projectiles = []
 
         #   Tiles   #
         self.tiles = []
 
         self.load()
+
+        #   Hud #
+        HM.init()
 
     # abstract function
     def load(self):
@@ -104,6 +111,14 @@ class Room(object):
         if draw_player:
             self.player.draw(drawSurf)
 
+        #   Weapons #
+        for w in self.weapons:
+            w.draw(drawSurf)
+
+        #   Projectiles #
+        for p in self.projectiles:
+            p.draw(drawSurf)
+
         #   Foreground  #
         for f in self.foreground:
             f.draw(drawSurf)
@@ -113,18 +128,85 @@ class Room(object):
         # drawSurf.blit(fg, vec(0, SCREEN_SIZE[1] - SCREEN_SIZE[1] // 4))
 
         for t in self.tiles:
-            t.draw(drawSurf, draw_collision)
+            t.draw(drawSurf, False)
 
         #   Dialogue    #
         if draw_player and self.speaking:
             TM.draw(drawSurf)
+
+        #   Hud #
+        if self.display_hud:
+            HM.draw(drawSurf)
 
     def handle_events(self):
         if self.speaking:
             TM.handle_events()
 
         else:
-            #   Interact with an object #
+            #   (1) Handle Collision    #
+            #   Handle Collisions with tiles
+            player_rect = self.player.get_collision_rect()
+            
+            for t in self.tiles:
+                if t.property == 0:
+                    continue
+                tile_rect = t.get_collision_rect()
+                if player_rect.colliderect(tile_rect):
+                    #   Check if player is colliding from above (landing on tile)
+                    #   If player's previous bottom was above tile's top, they landed on it
+                    if self.player.vel[1] > 0:  # Moving downward
+                        if player_rect.bottom >= tile_rect.top:
+                            # Player landed on the tile - land them
+                            self.player.land()
+                            # Snap player to top of tile
+                            self.player.position[1] = tile_rect.top - self.player.get_height()
+                            break
+            
+            #   Handle Collision with Enemies
+            if self.player.vulnerable:
+                for e in self.enemies:
+                    enemy_rect = e.get_collision_rect()
+                    if player_rect.colliderect(enemy_rect):
+                        #   Damage the Player
+                        self.player.damage(e)
+
+
+            #   (2) Use Weapons     #
+            if self.player.attacking:
+                self.weapons.append(self.player.get_weapon())
+                AM.play_weapon("shot_1.wav")
+                self.player.attack()
+
+            #   (3) Handle Weapon Collision on Enemies  #
+            # For each active weapon, check collision against enemies. On hit,
+            # call the enemy's damage(weapon) and the weapon's collide().
+            # Iterate weapons in normal order but break on the first hit so
+            # weapons don't hit multiple enemies (conserve processing).
+            for w in self.weapons:
+                if getattr(w, 'dead', False):
+                    continue
+
+                w_rect = w.get_collision_rect()
+                for e in self.enemies:
+                    if hasattr(e, 'dead') and getattr(e, 'dead'):
+                        continue
+
+                    if w_rect.colliderect(e.get_collision_rect()):
+                        # Damage the enemy with this weapon and mark weapon collided
+                        try:
+                            e.damage(w)
+                        except Exception:
+                            # If enemy.damage isn't present or fails, ignore to avoid crashing
+                            print("Enemy damage function fails")
+
+                        try:
+                            w.collide()
+                        except Exception:
+                            print("Weapon collide function fails")
+
+                        break
+
+            #   (4) Interact with an object #
             if EM.is_active('interact') and not self.player.airborn:
                 #   Check if the player can interact with any objects
                 for n in self.npcs:
@@ -132,8 +214,11 @@ class Room(object):
                         self.display_text(n.get_text(), row = n.get_box())
                         EM.deactivate('interact')
                         return
+                
+                
                 self.player.handle_events()
-
+            
+            
             #   Have the player handle events   #
             else:
                 self.player.handle_events()
@@ -156,6 +241,24 @@ class Room(object):
 
         for n in self.npcs:
             n.update(seconds)
+
+        for w in self.weapons:
+            w.update(seconds)
+
+        for p in self.projectiles:
+            p.update(seconds)
+
+        # Remove dead weapons in-place to conserve memory (avoid reallocating lists)
+        for i in range(len(self.weapons) - 1, -1, -1):
+            w = self.weapons[i]
+            if getattr(w, 'dead', False):
+                # optionally call any cleanup hook
+                try:
+                    if hasattr(w, 'on_destroy'):
+                        w.on_destroy()
+                except Exception:
+                    pass
+                self.weapons.pop(i)
             
         self.player.update(seconds)
         Drawable.updateOffsetPos(self.player.cam_pos, self.size)
@@ -177,6 +280,10 @@ class Room(object):
                 AM.drum_channel.set_volume(percent)
             else:
                 AM.drum_channel.set_volume(0.1)
+
+        #   Hud #
+        if self.display_hud:
+            HM.update(seconds)
 
     def transition(self):
         self.ready_to_transition = True
@@ -202,6 +309,8 @@ class Intro(Room):
         self.bk = Drawable(vec(0,0), "space.png")
         self.earth = Drawable(vec(SCREEN_SIZE[0] // 2 + 64, 80), "celestial.png", (3,1))
         self.in_cutscene = True
+        self.display_hud = False
+
         # self.next_room = Name
         self.next_room = Name
 
@@ -281,6 +390,9 @@ class Intro(Room):
 class Name(Room):
     def __init__(self):
         super().__init__(bgm="03", vol=20)
+
+        self.display_hud = False
+
         #   Lists of objects in the room    #
         #   Interactable Npcs
         self.npcs = [
@@ -587,7 +699,9 @@ class Mid_1(Room):
         self.npcs[0].position[1] -= self.npcs[0].get_height()
 
         self.enemies = [
-            Raven(vec(16*8, self.floor))
+            Raven(vec(16*26, 16*10 + 2)),
+            Raven(vec(16*18, 16*10 + 2)),
+
         ]
         self.unloaded_enemies = []
         #   Camera  #

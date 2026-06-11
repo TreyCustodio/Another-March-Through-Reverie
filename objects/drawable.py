@@ -57,8 +57,13 @@ class Drawable(object):
     def set_image(self, new_image: pygame.Surface):
         self.image = new_image
 
-    def draw(self, drawSurf):
+    def draw(self, drawSurf, drawRect = False):
         drawSurf.blit(self.image, list(map(int, self.position - Drawable.CAMERA_OFFSET)))
+        if drawRect:
+            rect = self.get_collision_rect()
+            rect.top -= Drawable.CAMERA_OFFSET[1]
+            rect.left -= Drawable.CAMERA_OFFSET[0]
+            pygame.draw.rect(drawSurf, (255, 0, 0), rect, 2)
     
     def scale_image(self, factor=2):
         if factor == 2:

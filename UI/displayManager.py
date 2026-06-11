@@ -97,7 +97,7 @@ class DisplayManager(object):
             """Display the fps"""
             fnt = font.Font(os.path.join("UI", "fonts", 'PressStart2P.ttf'), 16)
             img = fnt.render(str(round(self.fps, 2)), False, (255, 255, 255), (0,0,0))
-            drawSurf.blit(img, list(map(int, vec(2,2))))
+            drawSurf.blit(img, list(map(int, vec(0, UPSCALED[1] - 16))))
         
         def update_fps(self, fps):
             self.fps = fps

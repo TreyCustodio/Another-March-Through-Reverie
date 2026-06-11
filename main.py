@@ -43,6 +43,7 @@ gameClock = pygame.time.Clock()
 
 #   Main Loop   #
 RUNNING = True
+
 while RUNNING:
     #   (1) Draw    #
     pygame.transform.scale(drawSurface,
@@ -78,17 +79,17 @@ while RUNNING:
 
         #   Debugging Options   #
         #   Calculate and Display FPS
-        # frame_count += 1
-        # if time.time() - start_time > 1:
-        #     #  Should be as close to 60 as possible per the tick(60)
-        #     fps = frame_count / (time.time() - start_time)
-        #     # print("-" * 10)
-        #     # print(f"FPS: {fps:.2f}")
-        #     # print("-" * 10, end="\n\n")
-        #     frame_count = 0
-        #     start_time = time.time()
+        frame_count += 1
+        if time.time() - start_time > 1:
+            #  Should be as close to 60 as possible per the tick(60)
+            fps = frame_count / (time.time() - start_time)
+            # print("-" * 10)
+            # print(f"FPS: {fps:.2f}")
+            # print("-" * 10, end="\n\n")
+            frame_count = 0
+            start_time = time.time()
 
-        # display_manager.update_fps(fps)
+        display_manager.update_fps(fps)
 
         #   Turn music low/off
         # AM.bgm_channel.set_volume(0.0)

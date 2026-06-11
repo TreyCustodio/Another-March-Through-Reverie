@@ -41,6 +41,10 @@ class SpriteManager(object):
          #  Text  #
          "textbox.png": (240, 96),
 
+         #  Hud   #
+         join("misc", "heart.png"):   (102,26),
+         "shot.png":    (16,16),
+         
          #  Menu Icons  #
          "pointer.png": (33,16),
          'triangle.png': (32, 16),

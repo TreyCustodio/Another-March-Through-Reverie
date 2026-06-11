@@ -63,6 +63,10 @@ class AudioManager(object):
             #   Initialize pygame's mixer
             pygame.mixer.init()
 
+            #   Reserve Channel 2 player weapons    #
+            pygame.mixer.set_reserved(2)
+            self.weapon_channel = pygame.mixer.Channel(2)
+
             #   Reserve Channel 4 for menu sfx    #
             pygame.mixer.set_reserved(4)
             self.menu_channel = pygame.mixer.Channel(4)
@@ -142,6 +146,11 @@ class AudioManager(object):
             if name not in self.dict:
                 self._loadSFX(name)
             return self.dict[name].play(loops)
+        
+        def play_weapon(self, name, loops=0):
+            if name not in self.dict:
+                self._loadSFX(name)
+            return self.weapon_channel.play(self.dict[name], loops)
         
         def playText(self, name, loops=0):
             if name not in self.dict:

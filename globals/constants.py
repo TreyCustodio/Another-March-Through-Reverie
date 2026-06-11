@@ -13,7 +13,7 @@ SCALE_FACTOR = 1
 UPSCALED = SCREEN_SIZE * SCALE_FACTOR
 
 #   Gravity #
-GRAVITY = 500
+GRAVITY = 900
 
 #   Wayweaver's Name    #
 NAME = "Wayweaver"
