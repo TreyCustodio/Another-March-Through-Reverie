@@ -31,7 +31,6 @@ drawSurface = pygame.Surface(list(map(int, SCREEN_SIZE)))
 # pygame.mouse.set_visible(False)
 
 
-
 #   Vars for FPS Analysis  #
 start_time = time.time()
 fps = 0.0
@@ -39,9 +38,11 @@ frame_count = 0
 gameClock = pygame.time.Clock()
 
 
+#   Prepare the Event Manager!  #
+event_manager.init()
 
 
-#   Main Loop   #
+#   Main Game Loop   #
 RUNNING = True
 
 while RUNNING:
@@ -55,7 +56,7 @@ while RUNNING:
 
 
     #   (2) Handle Events   #
-    RUNNING = event_manager.main()
+    RUNNING = event_manager.main(True)
     if not RUNNING:
         pygame.quit()
         sys.exit()

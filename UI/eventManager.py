@@ -1,4 +1,4 @@
-from pygame import event
+from pygame import event, joystick
 from pygame.locals import *
 
 class EventManager(object):
@@ -35,9 +35,30 @@ class EventManager(object):
 
                 #   Mouse Motion
             }
+            
+            #   Joysticks
+            self.joysticks = []
 
+            #   Quit Boolean
             self.quit = False
+            
+            #   Analog stick deadzone
+            self.deadzone = 0.2
+            self.axis_left_active = False
+            self.axis_right_active = False
+            self.axis_up_active = False
+            self.axis_down_active = False
         
+        def init(self):
+            """Prepare for takeoff!!"""
+            #   Initialize any joysticks    #
+            joystick_count = joystick.get_count()
+            for i in range(joystick_count):
+                joy = joystick.Joystick(i)
+                joy.init()
+                self.joysticks.append(joy)
+                print(f"Initialized joystick {i}: {joy.get_name()}")
+
         def QUIT(self):
             self.quit = True
 
@@ -84,6 +105,19 @@ class EventManager(object):
                 if ev.type == QUIT:
                     return False
                 
+                elif ev.type == JOYDEVICEADDED:
+                    # joystick_count = joystick.get_count()
+                    # for i in range(len(self.joysticks) - 1, joystick_count):
+                    #     joy = joystick.Joystick(i)
+                    #     joy.init()
+                    #     self.joysticks.append(joy)
+                    #     print(f"Initialized joystick {i}: {joy.get_name()}")
+                    return True
+                
+                elif ev.type == JOYDEVICEREMOVED:
+                    print(f"Joystick {ev.instance_id} disconnected")
+                    self.deactivate_all()
+                    return True
 
                 #   Keyboard Controls   #
                 #   Keys Down
@@ -150,5 +184,74 @@ class EventManager(object):
 
                 elif ev.type == MOUSEBUTTONUP:
                     pass
+
+                #   Gamecube Controls   #
+                #   Buttons Down
+                elif ev.type == JOYBUTTONDOWN:
+                    if ev.button == 2:  # A Button
+                        self.activate('interact')
+                    
+                    elif ev.button == 3:  # B Button
+                        self.activate('attack1')
+                    
+                    elif ev.button == 0:  # Y Button
+                        self.activate('space')
+                    
+                    elif ev.button == 9:  # Start Button
+                        self.activate('pause')
+
+                #   Buttons Up
+                elif ev.type == JOYBUTTONUP:
+                    if ev.button == 2:  # A Button
+                        self.deactivate('interact')
+                    
+                    elif ev.button == 3:  # B Button
+                        self.deactivate('attack1')
+                    
+                    elif ev.button == 0:  # Y Button
+                        self.deactivate('space')
+                    
+                    elif ev.button == 9:  # Start Button
+                        self.deactivate('pause')
+
+                #   Analog Stick Motion
+                elif ev.type == JOYAXISMOTION:
+                    if ev.axis == 0:  # Left Analog Stick X Axis
+                        if ev.value < -self.deadzone:
+                            if not self.axis_left_active:
+                                self.activate('motion_left')
+                                self.axis_left_active = True
+                        else:
+                            if self.axis_left_active:
+                                self.deactivate('motion_left')
+                                self.axis_left_active = False
+                        
+                        if ev.value > self.deadzone:
+                            if not self.axis_right_active:
+                                self.activate('motion_right')
+                                self.axis_right_active = True
+                        else:
+                            if self.axis_right_active:
+                                self.deactivate('motion_right')
+                                self.axis_right_active = False
+                    
+                    elif ev.axis == 1:  # Left Analog Stick Y Axis
+                        if ev.value < -self.deadzone:
+                            if not self.axis_up_active:
+                                self.activate('motion_up')
+                                self.axis_up_active = True
+                        else:
+                            if self.axis_up_active:
+                                self.deactivate('motion_up')
+                                self.axis_up_active = False
+                        
+                        if ev.value > self.deadzone:
+                            if not self.axis_down_active:
+                                self.activate('motion_down')
+                                self.axis_down_active = True
+                        else:
+                            if self.axis_down_active:
+                                self.deactivate('motion_down')
+                                self.axis_down_active = False
 
             return True

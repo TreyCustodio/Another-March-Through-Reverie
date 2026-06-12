@@ -587,7 +587,11 @@ class Player(Drawable):
 
         #   Idle
         else:
-            self.cam_pos[0] = int(self.position[0])
+            if self.facing == "right":
+                self.cam_pos[0] = int(self.position[0])
+            elif self.facing == "left":
+                self.cam_pos[0] = int(self.position[0])
+
     
     def camera_in_position(self):
         """Check if the camera is in the desired position"""
