@@ -19,6 +19,9 @@ class EventManager(object):
         def __init__(self):
             #   Dictionary of actions and whether or not they are active/inactive (0 or 1)  #
             self.actions = {
+                #   Auxillary Commands
+                'pause': False,
+
                 #   Action Commands
                 'interact': False,
                 'attack1': False,
@@ -88,6 +91,9 @@ class EventManager(object):
                     if ev.key == K_ESCAPE:
                         return False
                     
+                    elif ev.key == K_RETURN:
+                        self.activate('pause')
+
                     elif ev.key == K_z:
                         self.activate('interact')
                     
@@ -111,7 +117,10 @@ class EventManager(object):
 
                 #   Keys Up
                 elif ev.type == KEYUP:
-                    if ev.key == K_z:
+                    if ev.key == K_RETURN:
+                        self.deactivate('pause')
+
+                    elif ev.key == K_z:
                         self.deactivate('interact')
                     
                     elif ev.key == K_x:

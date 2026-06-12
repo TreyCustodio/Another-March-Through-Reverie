@@ -8,4 +8,5 @@ from .player import *
 from .cursor import *
 from .text import *
 from .hud import *
+from .pause import *
 from .room import *

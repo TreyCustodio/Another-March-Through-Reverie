@@ -4,7 +4,7 @@ import os
 from pygame import Surface, SRCALPHA, Rect, draw, transform
 
 from . import PlayerLoader, Drawable, TextManager, HudManager, Interactable, GlowingBox, TextShadow,\
-Weegee
+Weegee, PauseEngine
 from .enemy import *
 from globals import SCREEN_SIZE, UPSCALED, SCALE_FACTOR, vec, SPEECH
 from UI import SpriteManager, AudioManager, EventManager
@@ -20,6 +20,7 @@ TM = TextManager.getInstance()
 EM = EventManager.getInstance()
 AM = AudioManager.getInstance()
 HM = HudManager.getInstance()
+PE = PauseEngine.getInstance()
 
 # ==== Helper Objects ====== #
 class Tile(Drawable):
@@ -52,6 +53,7 @@ class Room(object):
 
         #   States  #
         self.speaking = False # in dialogue
+        self.paused = False
         self.in_cutscene = False
         self.ready_to_transition = False
         self.display_hud = True
@@ -138,11 +140,32 @@ class Room(object):
         if self.display_hud:
             HM.draw(drawSurf)
 
+        #   Pause   #
+        if self.paused:
+            PE.draw(drawSurf)
+
     def handle_events(self):
+        #   Handle Dialogue
         if self.speaking:
             TM.handle_events()
+        
+        #   Handle Pause
+        elif self.paused:
+            if EM.is_active("pause"):
+                self.paused = False
+                AM.bgm_channel.set_volume(1.0)
+                EM.deactivate("pause")
+                return
+            PE.handle_events()
 
         else:
+            #   (0) Handle High-priority Events #
+            if EM.is_active("pause"):
+                self.paused = True
+                EM.deactivate("pause")
+                AM.bgm_channel.set_volume(0.45)
+                return
+            
             #   (1) Handle Collision    #
             #   Handle Collisions with tiles
             player_rect = self.player.get_collision_rect()
@@ -235,6 +258,10 @@ class Room(object):
     def update(self, seconds, play_music = True, update_bgm = True):
         if play_music and not self.playing_bgm:
             self.play_bgm()
+
+        if self.paused:
+            PE.update(seconds)
+            return
 
         for e in self.enemies:
             e.update(seconds)
