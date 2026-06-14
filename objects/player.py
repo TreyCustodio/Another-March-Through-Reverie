@@ -5,6 +5,7 @@ from pygame import font, Rect
 from globals import vec, GRAVITY, UPSCALED
 from UI import EventManager, AudioManager, SpriteManager
 from . import Drawable, State
+from .camera import Camera
 
 from .weapons import *
 
@@ -69,13 +70,7 @@ class Player(Drawable):
 
         #   Camera Properties   #
         p = position.copy()
-        self.cam_pos = vec(int(p[0]), int(p[1]))
-        self.camera_speed = 40
-        self.camera_catch = 900
-        self.cam_delta = 50
-        self.camera_lock = False
-        self.idle_counter = 32
-        self.idle_frames = 32
+        self.camera = Camera(p)
 
         #   Physics Variables   #
         self.hp = 5
@@ -562,129 +557,62 @@ class Player(Drawable):
         #   Set Position    #
         self.position += self.vel*seconds
 
-    def set_camera_position(self, direction=0, lock = False):
-        """
-        Set the camera's position to the desired position.
-        Directions:
-        0 -> right; 1 -> left; 2 -> idle
-        """
+    def get_camera_position(self):
+        return self.camera.get_position()
+    
+    # def set_camera_position(self, direction=0, lock = False):
+    #     """
+    #     Set the camera's position to the desired position.
+    #     Directions:
+    #     0 -> right; 1 -> left; 2 -> idle
+    #     """
 
-        #   Facing Right
-        if direction == 0:
-            if lock:
-                self.cam_pos[0] = int(self.position[0])
-            else:
-                self.cam_pos[0] = int(self.position[0] + self.cam_delta)
-            self.idle_counter = 0
+    #     #   Facing Right
+    #     if direction == 0:
+    #         if lock:
+    #             self.cam_pos[0] = int(self.position[0])
+    #         else:
+    #             self.cam_pos[0] = int(self.position[0] + self.cam_delta)
+    #         self.idle_counter = 0
 
-        #   Facing Left
-        elif direction == 1:
-            if lock:
-                self.cam_pos[0] = int(self.position[0])
-            else:
-                self.cam_pos[0] = int(self.position[0] - self.cam_delta)
-            self.idle_counter = 0
+    #     #   Facing Left
+    #     elif direction == 1:
+    #         if lock:
+    #             self.cam_pos[0] = int(self.position[0])
+    #         else:
+    #             self.cam_pos[0] = int(self.position[0] - self.cam_delta)
+    #         self.idle_counter = 0
 
-        #   Idle
-        else:
-            if self.facing == "right":
-                self.cam_pos[0] = int(self.position[0])
-            elif self.facing == "left":
-                self.cam_pos[0] = int(self.position[0])
+    #     #   Idle
+    #     else:
+    #         if self.facing == "right":
+    #             self.cam_pos[0] = int(self.position[0])
+    #         elif self.facing == "left":
+    #             self.cam_pos[0] = int(self.position[0])
 
     
-    def camera_in_position(self):
-        """Check if the camera is in the desired position"""
-        #   Facing Right
-        if self.vel[0] > 0:
-            return int(self.cam_pos[0]) == int(self.position[0] + self.cam_delta)
+    # def camera_in_position(self):
+    #     """Check if the camera is in the desired position"""
+    #     #   Facing Right
+    #     if self.vel[0] > 0:
+    #         return int(self.cam_pos[0]) == int(self.position[0] + self.cam_delta)
         
-        #   Facing Left
-        elif self.vel[0] < 0:
-            return int(self.cam_pos[0]) == int(self.position[0] - self.cam_delta)
+    #     #   Facing Left
+    #     elif self.vel[0] < 0:
+    #         return int(self.cam_pos[0]) == int(self.position[0] - self.cam_delta)
         
-        #   Idle
-        else:
-            return int(self.cam_pos[0]) == int(self.position[0])
-
-    def update_camera(self, seconds):
-        """Position the camera as desired"""
-        #   Keep the player centered during camera lock
-        if self.camera_lock:
-            if self.camera_in_position():
-                return
-            else:
-                if self.vel[0] > 0:
-                    self.set_camera_position(0, lock=True)
-                elif self.vel[0] < 0:
-                    self.set_camera_position(1, lock=True)
-                else:
-                    self.set_camera_position(2, lock=True)
-            return
-        
-        #   Check if the camera is in the desired position
-        if self.camera_in_position():
-            return
-
-        #   Update the camera's position
-        else:
-            #   Player running at max speed or above; camera catches up fast
-            if abs(self.vel[0]) >= self.max_speed:
-                #   Moving Right
-                if self.vel[0] > 0:
-                    if self.cam_pos[0] < int(self.position[0] + self.cam_delta):
-                        self.cam_pos[0] += (self.camera_catch) * seconds
-                        
-                        if self.cam_pos[0] >= int(self.position[0] + self.cam_delta):
-                            self.set_camera_position(0)
-
-                #   Moving Left
-                elif self.vel[0] < 0 :
-                    if self.cam_pos[0] > int(self.position[0] - self.cam_delta):
-                        self.cam_pos[0] -= (self.camera_catch) * seconds
-                        
-                        if self.cam_pos[0] <= int(self.position[0] - self.cam_delta):
-                            self.set_camera_position(1)
-
-            #    Player running slower than max speed; cam moves with the player
-            else:
-                #   Moving Right
-                if self.vel[0] > 0:
-                    if self.cam_pos[0] < int(self.position[0] + self.cam_delta):
-                        self.cam_pos[0] += (self.vel[0] + self.camera_speed) * seconds
-                        
-                        if self.cam_pos[0] >= int(self.position[0] + self.cam_delta):
-                            self.set_camera_position(0)
+    #     #   Idle
+    #     else:
+    #         return int(self.cam_pos[0]) == int(self.position[0])
 
 
-                #   Moving Left
-                elif self.vel[0] < 0:
-                    if self.cam_pos[0] > int(self.position[0] - self.cam_delta):
+    def update_cooldown(self, seconds):
+        if self.cooling_down:
+            self.cooldown_timer += seconds
+            if self.cooldown_timer >= self.shot_cooldown:
+                self.cooling_down = False
+                self.cooldown_timer = 0.0
 
-                        self.cam_pos[0] += (self.vel[0] - self.camera_speed) * seconds
-                        
-                        if self.cam_pos[0] <= int(self.position[0] - self.cam_delta):
-                            self.set_camera_position(1)
-
-
-                #   At rest
-                else:
-                    #   Camera too far left; move it right
-                    if self.idle_counter == self.idle_frames:
-                        if self.cam_pos[0] < int(self.position[0]):
-                            self.cam_pos[0] += (self.camera_speed * 2) * seconds
-                            if self.cam_pos[0] >= int(self.position[0]):
-                                self.set_camera_position(2)
-
-                        #   Camera too far right; move it left
-                        elif self.cam_pos[0] > int(self.position[0]):
-                            self.cam_pos[0] -= (self.camera_speed * 2) * seconds
-                            if self.cam_pos[0] <= int(self.position[0]):
-                                self.set_camera_position(2)
-                    else:
-                        self.idle_counter += 1
-
-    
     def update(self, seconds):
         if not self.visible:
             return
@@ -711,11 +639,10 @@ class Player(Drawable):
         self.update_movement(seconds)
 
         #   Update Camera Position  #
-        self.update_camera(seconds)
+        self.camera.update(seconds, self.position.copy(), self.vel.copy(),
+                           self.get_size(), self.facing, self.max_speed)
+        # self.update_camera(seconds)
 
         #   Update Attack Cooldowns #
-        if self.cooling_down:
-            self.cooldown_timer += seconds
-            if self.cooldown_timer >= self.shot_cooldown:
-                self.cooling_down = False
-                self.cooldown_timer = 0.0
+        self.update_cooldown(seconds)
+        

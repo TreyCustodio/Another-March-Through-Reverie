@@ -61,7 +61,7 @@ class Room(object):
 
         #   Cutscene control    #
         self.text_int = 0
-        Drawable.updateOffsetPos(self.player.cam_pos, self.size)
+        Drawable.updateOffsetPos(self.player.get_camera_position(), self.size)
         self.timer = 0.0
 
         #   Art #
@@ -288,7 +288,7 @@ class Room(object):
                 self.weapons.pop(i)
             
         self.player.update(seconds)
-        Drawable.updateOffsetPos(self.player.cam_pos, self.size)
+        Drawable.updateOffsetPos(self.player.get_camera_position(), self.size)
 
         if self.speaking:
             TM.update(seconds)
@@ -731,7 +731,6 @@ class Mid_1(Room):
 
         ]
         self.unloaded_enemies = []
-        #   Camera  #
 
         #   Tiles   #
         self.player.set_visible()

@@ -4,6 +4,7 @@ from .animated import *
 from .weapons import *
 from .npc import *
 from .enemy import *
+from .camera import *
 from .player import *
 from .cursor import *
 from .text import *
