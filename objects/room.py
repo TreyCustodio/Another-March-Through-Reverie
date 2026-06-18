@@ -195,10 +195,9 @@ class Room(object):
 
 
             #   (2) Use Weapons     #
-            if self.player.attacking:
+            if self.player.attacking and self.player.shot_ready:
                 self.weapons.append(self.player.get_weapon())
                 AM.play_weapon("shot_1.wav")
-                self.player.attack()
 
             #   (3) Handle Weapon Collision on Enemies  #
             # For each active weapon, check collision against enemies. On hit,

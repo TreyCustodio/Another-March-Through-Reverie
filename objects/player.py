@@ -57,11 +57,11 @@ class Player(Drawable):
             'running_right': State("weaver_run.png", 0, 0, 16, 9, flip_x=False),
             'running_left': State("weaver_run.png", 0, 0, 16, 9, flip_x=True),
 
-            'crouching_right': State("weaver_crouch.png", 0, 0, 16, 11, loop=True, loop_start = 3, loop_end=5, flip_x=False),
-            'crouching_left': State("weaver_crouch.png", 0, 0, 16, 11, loop=True, loop_start = 3, loop_end=5, flip_x=True),
+            'crouching_right': State("weaver_crouch.png", 0, 0, 32, 11, loop=True, loop_start = 3, loop_end=5, flip_x=False),
+            'crouching_left': State("weaver_crouch.png", 0, 0, 32, 11, loop=True, loop_start = 3, loop_end=5, flip_x=True),
 
-            'shooting_right': State("weaver_shot.png", 0, 0, 16, 11, flip_x=False),
-            'shooting_left': State("weaver_shot.png", 0, 0, 16, 11, flip_x=True),
+            'shooting_right': State("weaver_shot.png", 0, 0, 48, 12, loop = True, loop_start = 6, loop_end = 8, flip_x=False),
+            'shooting_left': State("weaver_shot.png", 0, 0, 48, 12, loop=True, loop_start = 6, loop_end = 8, flip_x=True),
 
             'jumping_right': State("weaver_jump.png", row = 0, starting_frame = 0, fps = 16, num_frames = 13),
             'jumping_left': State("weaver_jump.png", row = 1, starting_frame = 0, fps = 16, num_frames = 13),
@@ -77,6 +77,7 @@ class Player(Drawable):
         self.animation_timer = 0.0
         self.switching_states = False
         self.next_state = ""
+        self.last_frame = 0
         self.shadow = Drawable(vec(self.position[0] - 8, self.position[1]), "samus.png", (0,0))
 
         #   Data for playing a specific animation   #
@@ -116,6 +117,7 @@ class Player(Drawable):
 
         #   Physics States  #
         self.attacking = False
+        self.shot_ready = False
         self.cooling_down = False
         self.airborn = False
         self.gaining = False
@@ -130,7 +132,14 @@ class Player(Drawable):
         self.damage_timer = 0.0
         self.facing = 'right'  # current player facing direction
 
-        
+        #   Key Locking #
+        self.key_lock = False
+
+    def lock_keys(self):
+        self.key_lock = True
+
+    def unlock_keys(self):
+        self.key_lock = False
 
     def set_visible(self):
         self.visible = True
@@ -234,12 +243,14 @@ class Player(Drawable):
     def get_row(self):
         return self.get_current_state().get_row()
 
-    def set_state(self, state, finish_animation = False):
+    def set_state(self, state, finish_animation = False, last_frame = 0):
         #   Finish the current animation before proceeding to the next state
         if finish_animation:
+            self.frame = self.get_current_state().loop_end
             self.next_state = state
             self.switching_states = True
-            
+            self.last_frame = last_frame
+
         #   Proceed to the next state
         else:
             self.state = state
@@ -274,11 +285,31 @@ class Player(Drawable):
             self.set_state('crouching_left')
 
     def exit_crouch(self):
+        EM.deactivate('interact')
         self.crouching = False
+        self.lock_keys()
         if self.facing == "right":
-            self.play_animation("crouching_right", 6, 9)
+            self.set_state("idle_right", finish_animation=True, last_frame=9)
         elif self.facing == 'left':
-            self.play_animation('crouching_left', 6, 9)
+            self.set_state("idle_left", finish_animation=True, last_frame=9)
+
+    def shoot(self):
+        self.attacking = True
+        self.cooling_down = True
+        self.shot_ready = True
+
+    def stop_shot(self, before_shot = False):
+        self.attacking = False
+        self.cooling_down = False
+        self.shot_ready = True
+        self.cooldown_timer = 0.0
+        self.lock_keys()
+        if before_shot:
+            self.frame = 9
+        if self.facing == "right":
+            self.set_state("idle_right", finish_animation=True, last_frame=11)
+        elif self.facing == "left":
+            self.set_state("idle_left", finish_animation=True, last_frame=11)
 
     def walking(self) -> bool:
         return self.state == 'walking_left' or self.state == 'walking_right'
@@ -303,33 +334,29 @@ class Player(Drawable):
         else:
             self.set_state('jumping_right')
 
-    def shoot(self):
-        if self.facing == "right":
-            self.set_state("shooting_right")
-        elif self.facing == "left":
-            self.set_state("shooting_left")
-            
-        self.attacking = True
-        self.cooling_down = True
+    
 
     def get_weapon(self):
-        shot_y = self.position[1] + (self.get_height() // 2)
+        shot_y = self.position[1] + 9
         if self.crouching:
             shot_y += 8
 
         if self.facing == 'left':
-            shot_position = vec(self.position[0] - 22, shot_y)
+            shot_position = vec(self.position[0] - 10, shot_y)
         else:
-            shot_position = vec(self.position[0] + self.get_width() - 6, shot_y)
+            shot_position = vec(self.position[0] + self.get_width() - 14, shot_y)
+        
+        self.shot_ready = False
+
         return Shot(shot_position, self.facing)
     
     def attack(self):
         self.attacking = False
 
-    def handle_events(self):
-        if not self.visible:
-            return
-        
+
+
+    #   ----- Event Handling -----  #
+    def check_left(self):
         #   Left Motion #
         if EM.is_active('motion_left'):
             self.facing = 'left'
@@ -372,6 +399,7 @@ class Player(Drawable):
             if not self.idle and not self.jumping() and self.state != 'walking_right':
                 self.set_idle('left')
 
+    def check_right(self):
         #   Right Motion    #
         if EM.is_active('motion_right'):
             self.facing = 'right'
@@ -405,16 +433,16 @@ class Player(Drawable):
                     self.vel[0] *= -1
                 else:
                     self.vel[0] = self.speed
-
         else:
             #   Idle
             if not self.idle and not self.jumping() and self.state != 'walking_left':
                 self.set_idle('right')
 
-
+    def check_up(self):
         if EM.is_active('motion_up'):
             pass
-        
+
+    def check_down(self):
         #   Start Crouching
         if EM.is_active('motion_down'):
             if not self.crouching:
@@ -423,12 +451,17 @@ class Player(Drawable):
         #   Stop Crouching
         else:
             if self.crouching:
-                if not self.airborn:
-                    self.set_idle(self.facing)
-                self.exit_crouch() 
+                # if not self.airborn:
+                #     self.set_idle(self.facing)
+                self.exit_crouch()
 
-        #   Jumping #
+    def check_interact(self):
+        #   Jumping / Sliding   #
         if EM.is_active('interact'):
+            #   Slide attack
+            if self.crouching:
+                return
+            
             if not self.gaining:
                 #   Second Jump Press (Mid-air boost)   #
                 if self.airborn and not self.grounded:
@@ -453,15 +486,50 @@ class Player(Drawable):
                 self.gaining = False
                 self.jump_hold_time = self.jump_hold_max
 
-
-        #   Shot Attack (X) #
+    def check_attack(self):
+        #   Shot Attack (X)
         if EM.is_active('attack1'):
-            if not self.cooling_down and abs(self.vel[0]) == 0:
-                self.shoot()
-                
+            if abs(self.vel[0]) != 0:
+                return
+            if self.state != "shooting_right" and self.state != "shooting_left":
+                if self.facing == "right":
+                    self.set_state("shooting_right")
+                elif self.facing == "left":
+                    self.set_state("shooting_left")
+            elif self.frame == 6:
+                if not self.cooling_down:
+                    self.shoot()
+            else:
+                return
 
-        return
+        #   Stop Shooting
+        elif self.attacking:
+            self.stop_shot()
+
+        elif self.state == "shooting_right" or self.state == "shooting_left":
+            self.stop_shot(before_shot=True)
+
+    def handle_events(self):
+        if not self.visible:
+            return
+        
+        if self.key_lock:
+            return
+        
+        if not self.crouching and not self.attacking:
+            self.check_left()
+            self.check_right()
+            self.check_up()
+        
+        if not self.attacking:
+            self.check_down()
+            self.check_interact()
+
+        if not self.crouching:
+            self.check_attack()
     
+
+    #   ----- Updating  -----   #
     def accel(self, seconds):
         """Accelerate to max speed and stay at that speed"""
         #   Moving Right    #
@@ -665,11 +733,31 @@ class Player(Drawable):
             self.cooldown_timer += seconds
             if self.cooldown_timer >= self.shot_cooldown:
                 self.cooling_down = False
+                self.shot_ready = True
                 self.cooldown_timer = 0.0
 
 
     def update_animation(self, seconds):
-        Animated.update(self, seconds)
+        if self.switching_states:
+            if self.animation_timer >= (1/self.get_fps()):
+                if self.frame == self.last_frame:
+                    self.state = self.next_state
+                    self.frame = self.get_current_state().get_starting_frame()
+                    self.animation_timer = 0.0
+                    self.switching_states = False
+                    self.unlock_keys()
+                    self.set_image()
+                    return
+                else:
+                    self.frame += 1
+                    self.animation_timer = 0.0
+                    self.set_image()
+                    return
+            else:
+                self.animation_timer += seconds
+                
+        else:
+            Animated.update(self, seconds)
 
     def update_vulnerability(self, seconds):
         if not self.vulnerable:
@@ -692,14 +780,16 @@ class Player(Drawable):
         #   Update I-frames #
         self.update_vulnerability(seconds)
 
-        #   Update Physics  #
-        self.update_movement(seconds)
-
-        #   Update Camera Position  #
-        self.camera.update(seconds, self.position.copy(), self.vel.copy(),
-                           self.get_size(), self.facing, self.max_speed)
-        # self.update_camera(seconds)
-
         #   Update Attack Cooldowns #
         self.update_cooldown(seconds)
+
+        if not self.switching_states:
+            #   Update Physics  #
+            self.update_movement(seconds)
+
+            #   Update Camera Position  #
+            self.camera.update(seconds, self.position.copy(), self.vel.copy(),
+                            self.get_size(), self.facing, self.max_speed)
+
+        
         

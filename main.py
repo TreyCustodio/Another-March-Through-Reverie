@@ -93,4 +93,4 @@ while RUNNING:
         display_manager.update_fps(fps)
 
         #   Turn music low/off
-        # AM.bgm_channel.set_volume(0.0)
+        AM.bgm_channel.set_volume(0.0)

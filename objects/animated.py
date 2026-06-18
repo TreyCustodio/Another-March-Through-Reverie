@@ -60,6 +60,9 @@ class Animated(Drawable):
         self.frame = 0
         self.animation_timer = 0.0
         self.file_name = file_name
+        self.switching_states = False
+        self.next_state = ""
+        self.last_frame = 0
 
         #   Data for playing a specific animation
         self.playing_animation = False
@@ -152,6 +155,21 @@ class Animated(Drawable):
             else:
                 #   Get the current state
                 current_state = self.get_current_state()
+
+                #   Finish the animation before the next
+                if self.switching_states:
+                    if self.frame == self.last_frame:
+                        self.state = self.next_state
+                        self.frame = self.get_current_state().get_starting_frame()
+                        self.animation_timer = 0.0
+                        self.switching_states = False
+                        self.set_image()
+                        return
+                    else:
+                        self.frame += 1
+                        self.animation_timer = 0.0
+                        self.set_image()
+                        return
 
                 #   Loop the animation if needed
                 if current_state.loop and self.frame >= current_state.loop_start:
