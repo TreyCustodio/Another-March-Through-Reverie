@@ -56,7 +56,7 @@ while RUNNING:
 
 
     #   (2) Handle Events   #
-    RUNNING = event_manager.main(True)
+    RUNNING = event_manager.main(False)
     if not RUNNING:
         pygame.quit()
         sys.exit()

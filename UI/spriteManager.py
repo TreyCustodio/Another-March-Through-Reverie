@@ -56,6 +56,11 @@ class SpriteManager(object):
          'samus.png': (32, 40),
          'weaver.png': (48, 48),
          'weaver_jump.png': (48, 57),
+         'weaver_walk.png': (48, 48),
+         'weaver_run.png': (48, 48),
+         'weaver_crouch.png': (48, 48),
+         'weaver_shot.png': (59, 48),
+
 
 
          #  NPCs  #

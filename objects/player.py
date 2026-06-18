@@ -1,10 +1,10 @@
 import os
 
-from pygame import font, Rect
+from pygame import font, Rect, transform
 
 from globals import vec, GRAVITY, UPSCALED
 from UI import EventManager, AudioManager, SpriteManager
-from . import Drawable, State
+from . import Drawable, State, Animated
 from .camera import Camera
 
 from .weapons import *
@@ -51,22 +51,44 @@ class Player(Drawable):
             'idle_right': State("weaver.png", 0, 0, 16, 48),
             'idle_left': State("weaver.png", 0, 1, 16, 48),
 
-            # 'walking_right': State("samus.png", 0, 1, 24, 10),
-            # 'walking_left': State("samus.png", 0, 2, 24, 10),
-            'walking_right': State("weaver.png", 0, 0, 16, 48),
-            'walking_left': State("weaver.png", 0, 1, 16, 48),
+            'walking_right': State(file_name="weaver_walk.png", starting_frame=0, row=0, fps=16, num_frames=10),
+            'walking_left': State("weaver_walk.png", 0, 0, 16, 10, flip_x=True),
 
-            
+            'running_right': State("weaver_run.png", 0, 0, 16, 9, flip_x=False),
+            'running_left': State("weaver_run.png", 0, 0, 16, 9, flip_x=True),
+
+            'crouching_right': State("weaver_crouch.png", 0, 0, 16, 11, loop=True, loop_start = 3, loop_end=5, flip_x=False),
+            'crouching_left': State("weaver_crouch.png", 0, 0, 16, 11, loop=True, loop_start = 3, loop_end=5, flip_x=True),
+
+            'shooting_right': State("weaver_shot.png", 0, 0, 16, 11, flip_x=False),
+            'shooting_left': State("weaver_shot.png", 0, 0, 16, 11, flip_x=True),
+
             'jumping_right': State("weaver_jump.png", row = 0, starting_frame = 0, fps = 16, num_frames = 13),
             'jumping_left': State("weaver_jump.png", row = 1, starting_frame = 0, fps = 16, num_frames = 13),
+
         }
+        
+        for state in self.states:
+            self.states[state].load_frames()
 
         #   Animation Properties    #
         self.state = 'idle'
         self.frame = 0
         self.animation_timer = 0.0
+        self.switching_states = False
+        self.next_state = ""
         self.shadow = Drawable(vec(self.position[0] - 8, self.position[1]), "samus.png", (0,0))
+
+        #   Data for playing a specific animation   #
+        self.playing_animation = False
+        self.current_animation = ""
+        self.animation_frame = 0
+        self.animation_start = 0
+        self.animation_end = 0
+
+        #   Set the initial image   #
         self.set_image()
+
 
         #   Camera Properties   #
         p = position.copy()
@@ -108,7 +130,7 @@ class Player(Drawable):
         self.damage_timer = 0.0
         self.facing = 'right'  # current player facing direction
 
-
+        
 
     def set_visible(self):
         self.visible = True
@@ -192,15 +214,13 @@ class Player(Drawable):
         self.cam_pos = position.copy()
 
     def set_image(self):
-        current_state = self.get_current_state()
-        file_name = current_state.get_file_name()
-        row = current_state.get_row()
-
-        new_image = SM.getSprite(file_name, (self.frame, row))
-        super().set_image(new_image)
-
+        Animated.set_image(self, pre_loaded=True, player = True)
         # shadow_image = SM.getSprite('samus.png', (self.frame, row+5))
         # self.shadow.set_image(shadow_image)
+
+    def play_animation(self, state, starting_frame, ending_frame):
+        """Play an animation without switching states"""
+        Animated.play_animation(self, state, starting_frame, ending_frame)
 
     def get_current_state(self):
         return self.states[self.state]
@@ -214,9 +234,18 @@ class Player(Drawable):
     def get_row(self):
         return self.get_current_state().get_row()
 
-    def set_state(self, state):
-        self.state = state
-        self.frame = self.get_current_state().get_starting_frame()
+    def set_state(self, state, finish_animation = False):
+        #   Finish the current animation before proceeding to the next state
+        if finish_animation:
+            self.next_state = state
+            self.switching_states = True
+            
+        #   Proceed to the next state
+        else:
+            self.state = state
+            self.frame = self.get_current_state().get_starting_frame()
+
+        #   Set the image
         self.set_image()
 
     def set_idle(self, direction = 'down'):
@@ -236,6 +265,20 @@ class Player(Drawable):
 
         self.idle = True
 
+    def crouch(self):
+        self.vel[0] = 0
+        self.crouching = True
+        if self.facing == 'right':
+            self.set_state('crouching_right')
+        elif self.facing == 'left':
+            self.set_state('crouching_left')
+
+    def exit_crouch(self):
+        self.crouching = False
+        if self.facing == "right":
+            self.play_animation("crouching_right", 6, 9)
+        elif self.facing == 'left':
+            self.play_animation('crouching_left', 6, 9)
 
     def walking(self) -> bool:
         return self.state == 'walking_left' or self.state == 'walking_right'
@@ -259,6 +302,15 @@ class Player(Drawable):
             self.set_state('jumping_left')
         else:
             self.set_state('jumping_right')
+
+    def shoot(self):
+        if self.facing == "right":
+            self.set_state("shooting_right")
+        elif self.facing == "left":
+            self.set_state("shooting_left")
+            
+        self.attacking = True
+        self.cooling_down = True
 
     def get_weapon(self):
         shot_y = self.position[1] + (self.get_height() // 2)
@@ -362,17 +414,19 @@ class Player(Drawable):
 
         if EM.is_active('motion_up'):
             pass
-
+        
+        #   Start Crouching
         if EM.is_active('motion_down'):
-            self.set_idle('down')
-            self.vel[0] = 0
-            self.crouching = True
+            if not self.crouching:
+                self.crouch()
+
+        #   Stop Crouching
         else:
             if self.crouching:
-                self.crouching = False
                 if not self.airborn:
                     self.set_idle(self.facing)
-        
+                self.exit_crouch() 
+
         #   Jumping #
         if EM.is_active('interact'):
             if not self.gaining:
@@ -403,8 +457,8 @@ class Player(Drawable):
         #   Shot Attack (X) #
         if EM.is_active('attack1'):
             if not self.cooling_down and abs(self.vel[0]) == 0:
-                self.attacking = True
-                self.cooling_down = True
+                self.shoot()
+                
 
         return
     
@@ -499,7 +553,7 @@ class Player(Drawable):
 
         print("HP: ", self.hp)
 
-        # Optional knockback effect from enemy contact
+        # Knockback
         if hasattr(enemy, 'position'):
             if enemy.position[0] < self.position[0]:
                 self.vel[0] = self.speed
@@ -613,6 +667,18 @@ class Player(Drawable):
                 self.cooling_down = False
                 self.cooldown_timer = 0.0
 
+
+    def update_animation(self, seconds):
+        Animated.update(self, seconds)
+
+    def update_vulnerability(self, seconds):
+        if not self.vulnerable:
+            self.damage_timer += seconds
+            if self.damage_timer >= self.damage_cooldown:
+                self.vulnerable = True
+                self.damage_timer = 0.0
+
+
     def update(self, seconds):
         if not self.visible:
             return
@@ -621,19 +687,10 @@ class Player(Drawable):
         # print("X Vel:", self.vel[0])
 
         #   Update Animation    #
-        if self.animation_timer >= (1/self.get_fps()):
-            self.frame += 1
-            self.frame %= self.get_num_frames()
-            self.animation_timer = 0.0
-            self.set_image()
-        else:
-            self.animation_timer += seconds
+        self.update_animation(seconds)
 
-        if not self.vulnerable:
-            self.damage_timer += seconds
-            if self.damage_timer >= self.damage_cooldown:
-                self.vulnerable = True
-                self.damage_timer = 0.0
+        #   Update I-frames #
+        self.update_vulnerability(seconds)
 
         #   Update Physics  #
         self.update_movement(seconds)
