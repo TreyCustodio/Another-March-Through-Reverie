@@ -1,7 +1,7 @@
 from globals import vec, SCREEN_SIZE, UPSCALED
 
 class Camera:
-    """A camera"""
+    """The Camera"""
     def __init__(self, position):
         #   Cast the camera position to integer values
         self.position = vec(int(position[0]), int(position[1]))

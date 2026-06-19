@@ -720,13 +720,13 @@ class Mid_1(Room):
 
         #   Lists of objects in the room    #
         self.npcs = [
-            Weegee(vec(self.player.position[0] + 64, self.floor))
+            # Weegee(vec(self.player.position[0] + 64, self.floor))
         ]
-        self.npcs[0].position[1] -= self.npcs[0].get_height()
+        # self.npcs[0].position[1] -= self.npcs[0].get_height()
 
         self.enemies = [
-            Raven(vec(16*26, 16*10 + 2)),
-            Raven(vec(16*18, 16*10 + 2)),
+            # Raven(vec(16*26, 16*10 + 2)),
+            # Raven(vec(16*18, 16*10 + 2)),
 
         ]
         self.unloaded_enemies = []

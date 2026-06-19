@@ -60,8 +60,8 @@ class Player(Drawable):
             'crouching_right': State("weaver_crouch.png", 0, 0, 32, 11, loop=True, loop_start = 3, loop_end=5, flip_x=False),
             'crouching_left': State("weaver_crouch.png", 0, 0, 32, 11, loop=True, loop_start = 3, loop_end=5, flip_x=True),
 
-            'shooting_right': State("weaver_shot.png", 0, 0, 48, 12, loop = True, loop_start = 6, loop_end = 8, flip_x=False),
-            'shooting_left': State("weaver_shot.png", 0, 0, 48, 12, loop=True, loop_start = 6, loop_end = 8, flip_x=True),
+            'shooting_right': State("weaver_shot.png", 0, 0, 64, 12, loop = True, loop_start = 3, loop_end = 8, flip_x=False),
+            'shooting_left': State("weaver_shot.png", 0, 0, 64, 12, loop=True, loop_start = 3, loop_end = 8, flip_x=True),
 
             'jumping_right': State("weaver_jump.png", row = 0, starting_frame = 0, fps = 16, num_frames = 13),
             'jumping_left': State("weaver_jump.png", row = 1, starting_frame = 0, fps = 16, num_frames = 13),
@@ -100,6 +100,7 @@ class Player(Drawable):
         self.max_hp = 5
         self.speed = 75
         self.max_speed = 600
+        self.running_speed = 300
         self.weight = 15
         self.acceleration = 120
         self.deceleration = 120
@@ -243,7 +244,8 @@ class Player(Drawable):
     def get_row(self):
         return self.get_current_state().get_row()
 
-    def set_state(self, state, finish_animation = False, last_frame = 0):
+    def set_state(self, state, finish_animation = False, last_frame = 0, optional_start_frame = -1):
+        # print(state)
         #   Finish the current animation before proceeding to the next state
         if finish_animation:
             self.frame = self.get_current_state().loop_end
@@ -254,7 +256,10 @@ class Player(Drawable):
         #   Proceed to the next state
         else:
             self.state = state
-            self.frame = self.get_current_state().get_starting_frame()
+            if optional_start_frame != -1:
+                self.frame = optional_start_frame
+            else:
+                self.frame = self.get_current_state().get_starting_frame()
 
         #   Set the image
         self.set_image()
@@ -313,6 +318,9 @@ class Player(Drawable):
 
     def walking(self) -> bool:
         return self.state == 'walking_left' or self.state == 'walking_right'
+    
+    def running(self) -> bool:
+        return self.state == "running_left" or self.state == "running_right"
     
     def jumping(self) -> bool:
         return self.state == 'jumping_left' or self.state == 'jumping_right'
@@ -384,7 +392,7 @@ class Player(Drawable):
 
 
             #   Grounded Motion (Left)
-            elif self.state != 'walking_left':
+            elif not self.walking() and not self.running():
                 self.move()
                 self.set_state('walking_left')
                 EM.deactivate('motion_right')
@@ -396,7 +404,7 @@ class Player(Drawable):
 
         else:
             #   Idle
-            if not self.idle and not self.jumping() and self.state != 'walking_right':
+            if not self.idle and not self.jumping() and self.facing == 'left':
                 self.set_idle('left')
 
     def check_right(self):
@@ -425,7 +433,7 @@ class Player(Drawable):
                         self.vel[0] = self.speed
 
             #   Grounded Motion (Right)
-            elif self.state != 'walking_right' and not self.jumping():
+            elif not self.walking() and not self.running():
                 self.move()
                 self.set_state('walking_right')
                 EM.deactivate('motion_left')
@@ -435,7 +443,7 @@ class Player(Drawable):
                     self.vel[0] = self.speed
         else:
             #   Idle
-            if not self.idle and not self.jumping() and self.state != 'walking_left':
+            if not self.idle and not self.jumping() and self.facing == 'right':
                 self.set_idle('right')
 
     def check_up(self):
@@ -525,7 +533,7 @@ class Player(Drawable):
             self.check_down()
             self.check_interact()
 
-        if not self.crouching:
+        if not self.crouching and not self.switching_states:
             self.check_attack()
     
 
@@ -537,10 +545,14 @@ class Player(Drawable):
             self.vel[0] += self.acceleration * seconds
             if self.vel[0] > self.max_speed:
                 self.vel[0] = self.max_speed
+            elif not self.running() and self.vel[0] >= self.running_speed:
+                self.set_state("running_right", optional_start_frame=self.frame)
         elif self.vel[0] < 0:
             self.vel[0] -= self.acceleration * seconds
             if self.vel[0] < -self.max_speed:
                 self.vel[0] = -self.max_speed
+            elif not self.running() and self.vel[0] <= -self.running_speed:
+                self.set_state("running_left", optional_start_frame=self.frame)
 
     def decel(self, seconds):
         """Decelerate to max speed and stay at that speed"""
