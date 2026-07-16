@@ -194,8 +194,14 @@ class AudioManager(object):
             fullname = os.path.join(AudioManager._AM._OST_FOLDER, name)
 
             if play_intro:
-                name = fullname + "_intro.wav"
-                intro = pygame.mixer.Sound(name)
+                try:
+                    name = fullname + "_intro.wav"
+                    intro = pygame.mixer.Sound(name)
+
+                except:
+                    name = fullname + "_intro.ogg"
+                    intro = pygame.mixer.Sound(name)
+
             else:
                 intro = None
 
@@ -218,8 +224,12 @@ class AudioManager(object):
                 drums_intro = None
 
             #   Add main
-            name = fullname + "_main.wav"
-            main = pygame.mixer.Sound(name)
+            try:
+                name = fullname + "_main.wav"
+                main = pygame.mixer.Sound(name)
+            except:
+                name = fullname + "_main.ogg"
+                main = pygame.mixer.Sound(name)
 
             self.ost[track_number] = Track(intro, main, drums, drums_intro)
 

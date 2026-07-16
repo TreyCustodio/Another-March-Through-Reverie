@@ -1,4 +1,5 @@
 import os
+import pygame
 
 from pygame import font, Rect, transform
 
@@ -14,6 +15,11 @@ EM = EventManager.getInstance()
 AM = AudioManager.getInstance()
 SM = SpriteManager.getInstance()
 
+"""
+    (1) Fix Camera
+    (2) Make changing directions smoother
+    (3) Implement Aerial Movement
+"""
 
 class PlayerLoader:
     """Use this class to ensure that only one player is ever loaded"""
@@ -25,6 +31,10 @@ class PlayerLoader:
             cls._INSTANCE = Player()
         return cls._INSTANCE
     
+
+# class Camera:
+#     """Determines what the player sees"""
+#     #   (1) KEEP THE WEAVER CENTERED
 
 class Player(Drawable):
     def __init__(self, position=vec(0,0)):
@@ -45,17 +55,22 @@ class Player(Drawable):
         #     'jumping_left': State("samus.png", 0, 4, 32, 10),
         # }
 
+        walk_fps = 32
+        run_fps = 16
+        # shot_fps = 64
+        # shot_fps = 16
+        
         self.states = {
             # state: [file_name, starting_frame, row, fps, nFrames]
             'idle': State("weaver.png", starting_frame=0, row=0, fps=16, num_frames=48),
             'idle_right': State("weaver.png", 0, 0, 16, 48),
             'idle_left': State("weaver.png", 0, 1, 16, 48),
 
-            'walking_right': State(file_name="weaver_walk.png", starting_frame=0, row=0, fps=16, num_frames=10),
-            'walking_left': State("weaver_walk.png", 0, 0, 16, 10, flip_x=True),
+            'walking_right': State(file_name="weaver_walk.png", starting_frame=0, row=0, fps=walk_fps, num_frames=10),
+            'walking_left': State("weaver_walk.png", 0, 0, walk_fps, 10, flip_x=True),
 
-            'running_right': State("weaver_run.png", 0, 0, 16, 9, flip_x=False),
-            'running_left': State("weaver_run.png", 0, 0, 16, 9, flip_x=True),
+            'running_right': State("weaver_run.png", 0, 0, run_fps, 9, flip_x=False),
+            'running_left': State("weaver_run.png", 0, 0, run_fps, 9, flip_x=True),
 
             'crouching_right': State("weaver_crouch.png", 0, 0, 32, 11, loop=True, loop_start = 3, loop_end=5, flip_x=False),
             'crouching_left': State("weaver_crouch.png", 0, 0, 32, 11, loop=True, loop_start = 3, loop_end=5, flip_x=True),
@@ -208,7 +223,16 @@ class Player(Drawable):
             pass
             #   Draw Max Speed Shadow   #
             # self.draw_shadows(drawSurf)
-            
+        
+        #   Draw a black outline around the player sprite   
+        outline_surface = pygame.Surface(self.image.get_size(), pygame.SRCALPHA)
+        mask = pygame.mask.from_surface(self.image)
+        mask.to_surface(outline_surface, setcolor=(38, 4, 56, 255), unsetcolor=(0,0,0,0))
+
+        base_pos = list(map(int, self.position - Drawable.CAMERA_OFFSET))
+        outline_offsets = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        for offset in outline_offsets:
+            drawSurf.blit(outline_surface, (base_pos[0] + offset[0], base_pos[1] + offset[1]))
         
         #   Display the velocity    #
         # velocity = str(round(self.vel[0], 2))

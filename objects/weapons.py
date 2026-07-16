@@ -1,8 +1,9 @@
 from os import path
 
+import pygame
 from pygame import Rect
 
-from . import Animated, State
+from . import Animated, State, Drawable
 from globals import vec
 
 class Weapon(Animated):
@@ -61,7 +62,9 @@ class Weapon(Animated):
 class Shot(Weapon):
     def __init__(self, position, direction='right'):
         self.direction = direction
-        velocity = vec(400, 0) if direction == 'right' else vec(-400, 0)
+        # speed = 400
+        speed = 200
+        velocity = vec(speed, 0) if direction == 'right' else vec(-speed, 0)
 
         super().__init__(position, file_name=path.join("misc", "shot.png"),
                          life_time=1.0, velocity=velocity, damage=1)
@@ -71,7 +74,17 @@ class Shot(Weapon):
         elif direction == "right":
             self.add_state("idle", State(path.join("misc", "shot.png"), row=0, fps=32, num_frames = 6))
 
+    def draw(self, drawSurf):
+        outline_surface = pygame.Surface(self.image.get_size(), pygame.SRCALPHA)
+        mask = pygame.mask.from_surface(self.image)
+        mask.to_surface(outline_surface, setcolor=(50,0,0, 255), unsetcolor=(0,0,0,0))
 
+        base_pos = list(map(int, self.position - Drawable.CAMERA_OFFSET))
+        outline_offsets = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        for offset in outline_offsets:
+            drawSurf.blit(outline_surface, (base_pos[0] + offset[0], base_pos[1] + offset[1]))
+        super().draw(drawSurf)
+        
 
     def get_collision_rect(self):
         return Rect(self.position, (self.get_width(), 5))

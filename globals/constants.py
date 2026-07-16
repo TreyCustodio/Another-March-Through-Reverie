@@ -71,7 +71,4 @@ SPEECH = {
 
 """
 “The Wayweaver” 
-
-Lux Universi 
-
 """

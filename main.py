@@ -70,14 +70,10 @@ while RUNNING:
 
         #   Update the modules  #
         event_manager.update_buffer(seconds)
-
         display_manager.handle_events()
-        
         display_manager.update(seconds)
-
         audio_manager.update(seconds)
     
-
         #   Debugging Options   #
         #   Calculate and Display FPS
         frame_count += 1

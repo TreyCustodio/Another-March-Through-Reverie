@@ -713,16 +713,15 @@ class Mid_1(Room):
         bk = Drawable(vec(0,0), os.path.join("middleground.png"))
         bk.image = transform.scale(bk.image, SCREEN_SIZE)
         self.background = [bk]
-                           
         self.foreground = []
 
         Drawable.updateOffsetPos(self.player.cam_pos, self.size)
 
         #   Lists of objects in the room    #
         self.npcs = [
-            # Weegee(vec(self.player.position[0] + 64, self.floor))
+            Weegee(vec(self.player.position[0] + 64, self.floor))
         ]
-        # self.npcs[0].position[1] -= self.npcs[0].get_height()
+        self.npcs[0].position[1] -= self.npcs[0].get_height()
 
         self.enemies = [
             # Raven(vec(16*26, 16*10 + 2)),
@@ -739,7 +738,8 @@ class Mid_1(Room):
         load_room(self)
             
     def play_bgm(self):
-        AM.play_ost(self.bgm, volume=self.bgm_volume, play_drums=False, play_intro = True)
+        AM.play_ost(self.bgm, volume=self.bgm_volume,
+                    play_drums=False, play_intro = False)
         self.playing_bgm = True
 
     def handle_events(self):
