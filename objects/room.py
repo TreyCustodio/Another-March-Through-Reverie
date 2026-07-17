@@ -37,12 +37,11 @@ class Tile(Drawable):
 # === Abstract Room Class ==== #
 class Room(object):
     """Draws the game, handles collision, handles events, and updates the world"""
-    def __init__(self, bgm="02", vol=2, name = "default_room"):
+    def __init__(self, bgm="02", vol=2, name = "default_room", size = vec(UPSCALED[0] * 20, UPSCALED[1])):
         self.name = name
-        self.size = vec(UPSCALED[0] * 20, UPSCALED[1])
+        self.size = size
         self.player = PlayerLoader.get_player()
         self.floor = UPSCALED[1] - UPSCALED[1] // 4
-        self.player.set_position(vec(UPSCALED[0] // 2 - self.player.get_width() // 2, self.floor - self.player.get_height()))
         
         #   BGM #
         self.bgm = bgm
@@ -61,8 +60,8 @@ class Room(object):
 
         #   Cutscene control    #
         self.text_int = 0
-        Drawable.updateOffsetPos(self.player.get_camera_position(), self.size)
         self.timer = 0.0
+        # Drawable.updateOffsetPos(self.player.get_camera_position(), self.size)
 
         #   Art #
         self.background = []
@@ -171,19 +170,30 @@ class Room(object):
             player_rect = self.player.get_collision_rect()
             
             for t in self.tiles:
-                if t.property == 0:
+                if getattr(t, "property", 0) != 1:
                     continue
-                tile_rect = t.get_collision_rect()
-                if player_rect.colliderect(tile_rect):
-                    #   Check if player is colliding from above (landing on tile)
-                    #   If player's previous bottom was above tile's top, they landed on it
-                    if self.player.vel[1] > 0:  # Moving downward
-                        if player_rect.bottom >= tile_rect.top:
-                            # Player landed on the tile - land them
-                            self.player.land()
-                            # Snap player to top of tile
-                            self.player.position[1] = tile_rect.top - self.player.get_height()
-                            break
+
+                tile_rect = Rect(t.position[0], t.position[1], t.image.get_width(), t.image.get_height())
+                if not player_rect.colliderect(tile_rect):
+                    continue
+
+                #   Check if player is colliding from above (landing on tile)
+                if self.player.vel[1] > 0 and player_rect.bottom >= tile_rect.top:
+                    self.player.land()
+                    self.player.position[1] = tile_rect.top - self.player.get_height()
+                    break
+                
+                #   Prevent horizontal movement through solid tiles
+                else:
+                    if self.player.vel[0] > 0:
+                        self.player.position[0] = tile_rect.left - self.player.get_width()
+                        self.player.vel[0] = 0
+                        break
+
+                    if self.player.vel[0] < 0:
+                        self.player.position[0] = tile_rect.right
+                        self.player.vel[0] = 0
+                        break
             
             #   Handle Collision with Enemies
             if self.player.vulnerable:
@@ -287,6 +297,8 @@ class Room(object):
                 self.weapons.pop(i)
             
         self.player.update(seconds)
+
+        #   Update the Camera offset
         Drawable.updateOffsetPos(self.player.get_camera_position(), self.size)
 
         if self.speaking:
@@ -707,19 +719,21 @@ class Name(Room):
 # --- Middleground 1 --- #
 class Mid_1(Room):
     def __init__(self):
-        super().__init__(bgm="04", name="mid_1")
+        super().__init__(bgm="04", name="mid_1", size = vec(UPSCALED[0] * 20, 500))
         
         #   Art #
         bk = Drawable(vec(0,0), os.path.join("middleground.png"))
         bk.image = transform.scale(bk.image, SCREEN_SIZE)
         self.background = [bk]
         self.foreground = []
+        self.player.set_position(vec(UPSCALED[0] // 2 - self.player.get_width() // 2, self.size[1] - 64 - self.player.get_height()))
 
-        Drawable.updateOffsetPos(self.player.cam_pos, self.size)
+
+        # Drawable.updateOffsetPos(self.player.cam_pos, self.size)
 
         #   Lists of objects in the room    #
         self.npcs = [
-            Weegee(vec(self.player.position[0] + 64, self.floor))
+            Weegee(vec(self.player.position[0] + 64, self.size[1] - 64))
         ]
         self.npcs[0].position[1] -= self.npcs[0].get_height()
 
@@ -761,7 +775,7 @@ class Und_1(Room):
         self.background = [bk]
 
         #   Camera  #
-        Drawable.updateOffsetPos(self.player.cam_pos, self.size)
+        # Drawable.updateOffsetPos(self.player.cam_pos, self.size)
 
         #   Tiles   #
         #   Need to only draw tiles within the camera's view and the player's path

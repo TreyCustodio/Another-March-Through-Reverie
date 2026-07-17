@@ -11,7 +11,8 @@ class State(object):
     def __init__(self, file_name = 'null.png',
                  starting_frame = 0, row = 0, fps = 8, num_frames = 1,
                  loop = False, loop_start = 0, loop_end = 0,
-                 flip_x = False, flip_y = False):
+                 flip_x = False, flip_y = False,
+                 offset = vec(0,0)):
         
         #   Keep track of the state's data  #
         self.file_name = file_name
@@ -24,6 +25,7 @@ class State(object):
         self.loop = loop
         self.loop_start = loop_start
         self.loop_end = loop_end
+        self.offset = offset
         self.frames = {}
         
 

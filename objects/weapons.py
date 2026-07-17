@@ -62,8 +62,9 @@ class Weapon(Animated):
 class Shot(Weapon):
     def __init__(self, position, direction='right'):
         self.direction = direction
-        # speed = 400
-        speed = 200
+        speed = 400
+        # speed = 200
+        
         velocity = vec(speed, 0) if direction == 'right' else vec(-speed, 0)
 
         super().__init__(position, file_name=path.join("misc", "shot.png"),

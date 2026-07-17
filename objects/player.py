@@ -34,7 +34,7 @@ class PlayerLoader:
 
 # class Camera:
 #     """Determines what the player sees"""
-#     #   (1) KEEP THE WEAVER CENTERED
+#     #   (1) KEEP THE WEAVER CENTERED HORIZONTALLY
 
 class Player(Drawable):
     def __init__(self, position=vec(0,0)):
@@ -56,7 +56,7 @@ class Player(Drawable):
         # }
 
         walk_fps = 32
-        run_fps = 16
+        run_fps = 32
         # shot_fps = 64
         # shot_fps = 16
         
@@ -235,9 +235,12 @@ class Player(Drawable):
             drawSurf.blit(outline_surface, (base_pos[0] + offset[0], base_pos[1] + offset[1]))
         
         #   Display the velocity    #
-        # velocity = str(round(self.vel[0], 2))
-        # img = font.Font(os.path.join("UI", "fonts", 'PressStart2P.ttf'), 16).render("Velocity: " + str(velocity), False, (255,255,255), (0,0,0))
-        # drawSurf.blit(img, vec(self.position[0] + self.get_width() // 2 - img.get_width() // 2, self.position[1] - img.get_height() - 8) - Drawable.CAMERA_OFFSET)
+        velocity = str(round(self.vel[0], 2))
+        if abs(self.vel[0] == self.max_speed):
+            img = font.Font(os.path.join("UI", "fonts", 'PressStart2P.ttf'), 16).render("Velocity: " + str(velocity), False, (255,0,0), (0,0,0))
+        else:
+            img = font.Font(os.path.join("UI", "fonts", 'PressStart2P.ttf'), 16).render("Velocity: " + str(velocity), False, (255,255,255), (0,0,0))
+        drawSurf.blit(img, vec(self.position[0] + self.get_width() // 2 - img.get_width() // 2, self.position[1] - img.get_height() - 8) - Drawable.CAMERA_OFFSET)
         
 
         
@@ -570,13 +573,14 @@ class Player(Drawable):
             if self.vel[0] > self.max_speed:
                 self.vel[0] = self.max_speed
             elif not self.running() and self.vel[0] >= self.running_speed:
-                self.set_state("running_right", optional_start_frame=self.frame)
+                # Modulo 9 here because the run animation only as 8 frames
+                self.set_state("running_right", optional_start_frame=self.frame % 9)
         elif self.vel[0] < 0:
             self.vel[0] -= self.acceleration * seconds
             if self.vel[0] < -self.max_speed:
                 self.vel[0] = -self.max_speed
             elif not self.running() and self.vel[0] <= -self.running_speed:
-                self.set_state("running_left", optional_start_frame=self.frame)
+                self.set_state("running_left", optional_start_frame=self.frame % 9)
 
     def decel(self, seconds):
         """Decelerate to max speed and stay at that speed"""
@@ -717,52 +721,6 @@ class Player(Drawable):
 
     def get_camera_position(self):
         return self.camera.get_position()
-    
-    # def set_camera_position(self, direction=0, lock = False):
-    #     """
-    #     Set the camera's position to the desired position.
-    #     Directions:
-    #     0 -> right; 1 -> left; 2 -> idle
-    #     """
-
-    #     #   Facing Right
-    #     if direction == 0:
-    #         if lock:
-    #             self.cam_pos[0] = int(self.position[0])
-    #         else:
-    #             self.cam_pos[0] = int(self.position[0] + self.cam_delta)
-    #         self.idle_counter = 0
-
-    #     #   Facing Left
-    #     elif direction == 1:
-    #         if lock:
-    #             self.cam_pos[0] = int(self.position[0])
-    #         else:
-    #             self.cam_pos[0] = int(self.position[0] - self.cam_delta)
-    #         self.idle_counter = 0
-
-    #     #   Idle
-    #     else:
-    #         if self.facing == "right":
-    #             self.cam_pos[0] = int(self.position[0])
-    #         elif self.facing == "left":
-    #             self.cam_pos[0] = int(self.position[0])
-
-    
-    # def camera_in_position(self):
-    #     """Check if the camera is in the desired position"""
-    #     #   Facing Right
-    #     if self.vel[0] > 0:
-    #         return int(self.cam_pos[0]) == int(self.position[0] + self.cam_delta)
-        
-    #     #   Facing Left
-    #     elif self.vel[0] < 0:
-    #         return int(self.cam_pos[0]) == int(self.position[0] - self.cam_delta)
-        
-    #     #   Idle
-    #     else:
-    #         return int(self.cam_pos[0]) == int(self.position[0])
-
 
     def update_cooldown(self, seconds):
         if self.cooling_down:
@@ -827,5 +785,6 @@ class Player(Drawable):
             self.camera.update(seconds, self.position.copy(), self.vel.copy(),
                             self.get_size(), self.facing, self.max_speed)
 
-        
+        print(self.position)
+        print("===============\n")
         
