@@ -30,7 +30,6 @@ class PlayerLoader:
         if cls._INSTANCE == None:
             cls._INSTANCE = Player()
 
-        cls._INSTANCE.vel = vec(0,0)
         return cls._INSTANCE
     
 
@@ -116,17 +115,19 @@ class Player(Drawable):
         self.hp = 5
         self.max_hp = 5
         self.speed = 75
-        self.max_speed = 600
-        self.running_speed = 300
+        self.max_speed = 400
+        self.running_speed = 250
+        self.speed_cap = 800
         self.weight = 15
         self.acceleration = 120
         self.deceleration = 120
         self.boost_deceleration = 10
+
         self.jump_force = -160
         self.jump_hold_max = 0.40
         self.jump_hold_time = 0.0
         self.jump_hold_gravity = 180
-        self.boost_force = 800
+        self.boost_force = 400
         self.vel = vec(0,0)
 
         #   Weapon Variables    #
@@ -176,55 +177,23 @@ class Player(Drawable):
     
     def draw_shadows(self, drawSurf):
         if abs(self.vel[0]) >= self.max_speed:
-            if self.state == 'walking_left' or self.state == 'jumping_left':
-                self.shadow.set_position(vec(self.position[0] + 18, self.position[1]))
-                self.shadow.draw(drawSurf)
-                self.shadow.set_position(vec(self.position[0] + 12, self.position[1]))
-                self.shadow.draw(drawSurf)
-                self.shadow.set_position(vec(self.position[0] + 6, self.position[1]))
-                self.shadow.draw(drawSurf)
+            if self.facing == "left":
+                drawSurf.blit(self.image, vec(self.position[0] + 18, self.position[1]) - Drawable.CAMERA_OFFSET)
+                drawSurf.blit(self.image, vec(self.position[0] + 12, self.position[1])- Drawable.CAMERA_OFFSET)
+                drawSurf.blit(self.image, vec(self.position[0] + 6, self.position[1])- Drawable.CAMERA_OFFSET)
             
-            elif self.state == 'walking_right' or self.state == 'jumping_right':
-                self.shadow.set_position(vec(self.position[0] - 18, self.position[1]))
-                self.shadow.draw(drawSurf)
-                self.shadow.set_position(vec(self.position[0] - 12, self.position[1]))
-                self.shadow.draw(drawSurf)
-                self.shadow.set_position(vec(self.position[0] - 6, self.position[1]))
-                self.shadow.draw(drawSurf)
+            elif self.facing == "right":
+                drawSurf.blit(self.image, vec(self.position[0] - 18, self.position[1])- Drawable.CAMERA_OFFSET)
+                drawSurf.blit(self.image, vec(self.position[0] - 12, self.position[1])- Drawable.CAMERA_OFFSET)
+                drawSurf.blit(self.image, vec(self.position[0] - 6, self.position[1])- Drawable.CAMERA_OFFSET)
                     
-        elif abs(self.vel[0]) >= ((self.max_speed // 3) * 2):
-            if self.state == 'walking_left' or self.state == 'jumping_left':
-                self.shadow.set_position(vec(self.position[0] + 12, self.position[1]))
-                self.shadow.draw(drawSurf)
-                self.shadow.set_position(vec(self.position[0] + 6, self.position[1]))
-                self.shadow.draw(drawSurf)
-            
-            elif self.state == 'walking_right' or self.state == 'jumping_right':
-                self.shadow.set_position(vec(self.position[0] - 12, self.position[1]))
-                self.shadow.draw(drawSurf)
-                self.shadow.set_position(vec(self.position[0] - 6, self.position[1]))
-                self.shadow.draw(drawSurf)
-
-        elif abs(self.vel[0]) >= ((self.max_speed // 3)):
-            if self.state == 'walking_left' or self.state == 'jumping_left':
-                self.shadow.set_position(vec(self.position[0] + 6, self.position[1]))
-                self.shadow.draw(drawSurf)
-            
-            elif self.state == 'walking_right' or self.state == 'jumping_right':
-                self.shadow.set_position(vec(self.position[0] - 6, self.position[1]))
-                self.shadow.draw(drawSurf)
-
     def draw(self, drawSurf, draw_rect = True):
         if not self.visible:
             return
         
-        if self.state == 'idle':
-            pass
-
-        else:
-            pass
+        if self.is_boosting():
             #   Draw Max Speed Shadow   #
-            # self.draw_shadows(drawSurf)
+            self.draw_shadows(drawSurf)
         
         #   Draw a black outline around the player sprite   
         outline_surface = pygame.Surface(self.image.get_size(), pygame.SRCALPHA)
@@ -317,6 +286,13 @@ class Player(Drawable):
 
         self.idle = True
 
+    def turn(self):
+        """Turn around"""
+        if abs(self.vel[0]) >= self.max_speed:
+            self.vel[0] *= -1
+        else:
+            self.vel[0] = -self.speed
+
     def crouch(self):
         self.vel[0] = 0
         self.crouching = True
@@ -351,19 +327,41 @@ class Player(Drawable):
             self.set_state("idle_right", finish_animation=True, last_frame=11)
         elif self.facing == "left":
             self.set_state("idle_left", finish_animation=True, last_frame=11)
-
-    def walking(self) -> bool:
-        return self.state == 'walking_left' or self.state == 'walking_right'
     
+    def stationary(self) -> bool:
+        """Return True if the player is standing still"""
+        return not self.walking() and not self.running()
+    
+    def is_boosting(self) -> bool:
+        return abs(self.vel[0]) > self.max_speed
+    
+    def moving(self) -> bool:
+        """Return True if the player is moving at all"""
+        return self.walking() or self.running()
+    
+    def walking(self) -> bool:
+        """Return True if the player is moving, but not at top speed"""
+        return self.state == 'walking_left' or self.state == 'walking_right'
+
     def running(self) -> bool:
+        """Return True if the player is running at top speed"""
         return self.state == "running_left" or self.state == "running_right"
     
+    def aerial(self) -> bool:
+        """Not implemented yet"""
+        return False
+    
     def jumping(self) -> bool:
+        """Deprecated"""
         return self.state == 'jumping_left' or self.state == 'jumping_right'
     
     def move(self):
         self.idle = False
         self.crouching = False
+        if self.facing == "left":
+            self.vel[0] = -self.speed
+        else:
+            self.vel[0] = self.speed
     
     def jump(self):
         # Set the physics and state values #
@@ -399,94 +397,82 @@ class Player(Drawable):
 
 
 
-    #   ----- Event Handling -----  #
+    """
+    ------- Checking for and handling Input  -------
+    * Four Primary States *
+    (1) Stationary
+    (2) Dashing
+        (a) walking
+        (b) running at top speed
+    (3) Crouching
+    (4) Aerial
+    """
     def check_left(self):
-        #   Left Motion #
+        """Check for left motion"""
         if EM.is_active('motion_left'):
             self.facing = 'left'
             
-            #   Mid-air Motion (Left)
-            if self.airborn or self.jumping():
-                #   Jump Left
-                if self.state == 'jumping_right':
-                    self.set_state('jumping_left')
-                    EM.deactivate('motion_right')
-                    if self.vel[0] >= self.max_speed:
-                        self.vel[0] *= -1
-                    else:
-                        self.vel[0] = -self.speed
-                
-                #   Move Left
-                else:
-                    self.move()
-                    EM.deactivate('motion_right')
+            #   Turn around
+            if self.state == "running_right":
+                self.set_state("running_left", optional_start_frame=self.frame % 9)
+                self.turn()
+                EM.deactivate('motion_right')
+                return
 
-                    if abs(self.vel[0]) >= self.max_speed:
-                        self.vel[0] *= -1
-                    else:
-                        self.vel[0] = -self.speed
+            elif self.state == "walking_right":
+                self.set_state('walking_left')
+                self.turn()
+                EM.deactivate('motion_right')
+                return
 
-
-            #   Grounded Motion (Left)
-            elif not self.walking() and not self.running():
+            #   Start walking
+            if not self.walking() and not self.running():
+                #   The player is idle
                 self.move()
                 self.set_state('walking_left')
                 EM.deactivate('motion_right')
 
-                if abs(self.vel[0]) >= self.max_speed:
-                    self.vel[0] *= -1
-                else:
-                    self.vel[0] = -self.speed
-
         else:
-            #   Idle
-            if not self.idle and not self.jumping() and self.facing == 'left':
-                self.set_idle('left')
+            if self.state == "walking_left" or self.state == "running_left":
+                self.set_idle(self.facing)
 
     def check_right(self):
-        #   Right Motion    #
+        """Check for right motion"""
         if EM.is_active('motion_right'):
             self.facing = 'right'
+            
+            #   Turn around
+            if self.state == "running_left":
+                self.set_state("running_right", optional_start_frame=self.frame % 9)
+                self.turn()
+                EM.deactivate('motion_left')
+                return
 
-            #   Mid-air Motion (Right)
-            if self.airborn or self.jumping():
-                #   Jump Right
-                if self.state == 'jumping_left':
-                    self.set_state('jumping_right')
-                    EM.deactivate('motion_left')
-                    if abs(self.vel[0]) >= self.max_speed:
-                        self.vel[0] *= -1
-                    else:
-                        self.vel[0] = self.speed
-                
-                #   Move Right
-                else:
-                    self.move()
-                    EM.deactivate('motion_left')
-                    if abs(self.vel[0]) >= self.max_speed:
-                        self.vel[0] *= -1
-                    else:
-                        self.vel[0] = self.speed
-
-            #   Grounded Motion (Right)
-            elif not self.walking() and not self.running():
+            elif self.state == "walking_left":
+                self.set_state('walking_right')
+                self.turn()
+                EM.deactivate('motion_left')
+                return
+            
+            #   Start walking
+            if not self.walking() and not self.running():
+                #   The player is idle
                 self.move()
                 self.set_state('walking_right')
                 EM.deactivate('motion_left')
-                if abs(self.vel[0]) >= self.max_speed:
-                    self.vel[0] *= -1
-                else:
-                    self.vel[0] = self.speed
+
         else:
-            #   Idle
-            if not self.idle and not self.jumping() and self.facing == 'right':
-                self.set_idle('right')
+            if self.state == "walking_right" or self.state == "running_right":
+                self.set_idle(self.facing)
+
 
     def check_up(self):
+        """Check for upward motion"""
         if EM.is_active('motion_up'):
             pass
 
     def check_down(self):
+        """Check for downward motion"""
         #   Start Crouching
         if EM.is_active('motion_down'):
             if not self.crouching:
@@ -500,51 +486,46 @@ class Player(Drawable):
                 self.exit_crouch()
 
     def check_interact(self):
+        """Check for *Interact* """
         #   Jumping / Sliding   #
         if EM.is_active('interact'):
             #   Slide attack
             if self.crouching:
                 return
             
-            if not self.gaining:
-                #   Second Jump Press (Mid-air boost)   #
-                if self.airborn and not self.grounded:
-                    if not self.boosting:
-                        #   Boost (1st upgrade)   #
-                        if self.state == "jumping_left":
-                            self.vel[0] = -self.boost_force
-                        else:
-                            self.vel[0] = self.boost_force
-                        self.boosting = True
-
-                #   First Jump Press (From ground)    #
-                elif self.grounded:
-                    self.jump()
-                    
-            #   Do nothing while gaining
-            else:
-                pass
-        else:
-            #   Stop gaining after button is released
-            if self.airborn:
-                self.gaining = False
-                self.jump_hold_time = self.jump_hold_max
-
     def check_attack(self):
-        #   Shot Attack (X)
+        """Check for *Attack 1* """
         if EM.is_active('attack1'):
-            if abs(self.vel[0]) != 0:
-                return
-            if self.state != "shooting_right" and self.state != "shooting_left":
-                if self.facing == "right":
-                    self.set_state("shooting_right")
-                elif self.facing == "left":
-                    self.set_state("shooting_left")
-            elif self.frame == 6:
-                if not self.cooling_down:
-                    self.shoot()
-            else:
-                return
+
+            #   Stationary -> Obliterator   #
+            if self.stationary():
+                if self.state != "shooting_right" and self.state != "shooting_left":
+                    if self.facing == "right":
+                        self.set_state("shooting_right")
+                    elif self.facing == "left":
+                        self.set_state("shooting_left")
+                elif self.frame == 6:
+                    if not self.cooling_down:
+                        self.shoot()
+                else:
+                    return
+            
+            #   Dashing -> Way Boost
+            elif self.moving():
+                EM.deactivate('attack1')
+                if self.facing == "left":
+                    self.vel[0] += -self.boost_force
+                    if self.vel[0] < -self.speed_cap:
+                        self.vel[0] = -self.speed_cap
+                    if not self.running():
+                        self.set_state("running_left", optional_start_frame=self.frame % 9)
+                
+                elif self.facing == "right":
+                    self.vel[0] += self.boost_force
+                    if self.vel[0] > self.speed_cap:
+                        self.vel[0] = self.speed_cap
+                    if not self.running():
+                        self.set_state("running_right", optional_start_frame=self.frame % 9)
 
         #   Stop Shooting
         elif self.attacking:
@@ -552,6 +533,23 @@ class Player(Drawable):
 
         elif self.state == "shooting_right" or self.state == "shooting_left":
             self.stop_shot(before_shot=True)
+
+    def check_special(self):
+        """Check *Special* """
+        return
+    
+    def check_evasive(self):
+        """Check *Evasive* """
+        return
+    
+    def check_pause(self):
+        """Check *Pause* """
+        return
+
+    def check_map(self):
+        """Check *Map* """
+        return
+    
 
     def handle_events(self):
         if not self.visible:
@@ -573,36 +571,42 @@ class Player(Drawable):
             self.check_attack()
     
 
-    #   ----- Updating  -----   #
+
+
+
+    """
+    ------ Update all of the player's data after handling inputs ------
+    """
     def accel(self, seconds):
         """Accelerate to max speed and stay at that speed"""
-        #   Moving Right    #
-        if self.vel[0] > 0:
+        #   Move Right  #
+        if self.state == "walking_right":
             self.vel[0] += self.acceleration * seconds
-            if self.vel[0] > self.max_speed:
+            if self.vel[0] >= self.running_speed:
                 self.vel[0] = self.max_speed
-            elif not self.running() and self.vel[0] >= self.running_speed:
-                # Modulo 9 here because the run animation only as 8 frames
-                self.set_state("running_right", optional_start_frame=self.frame % 9)
-        elif self.vel[0] < 0:
+                if not self.running():
+                    self.set_state("running_right", optional_start_frame=self.frame % 9)
+        
+        #   Move Left   #
+        elif self.state == "walking_left":
             self.vel[0] -= self.acceleration * seconds
-            if self.vel[0] < -self.max_speed:
+            if self.vel[0] <= -self.running_speed:
                 self.vel[0] = -self.max_speed
-            elif not self.running() and self.vel[0] <= -self.running_speed:
-                self.set_state("running_left", optional_start_frame=self.frame % 9)
+                if not self.running():
+                    self.set_state("running_left", optional_start_frame=self.frame % 9)
 
     def decel(self, seconds):
         """Decelerate to max speed and stay at that speed"""
         #   Moving Right    #
         if self.vel[0] > 0:
             self.vel[0] -= (self.deceleration * self.boost_deceleration) * seconds
-            if self.vel[0] < 0:
+            if self.vel[0] <= self.max_speed:
                 self.vel[0] = self.max_speed
        
        #    Moving Left #
         else:
             self.vel[0] += (self.deceleration * self.boost_deceleration) * seconds
-            if self.vel[0] > 0:
+            if self.vel[0] >= -self.max_speed:
                 self.vel[0] = -self.max_speed
 
     def stop(self, seconds):
@@ -627,6 +631,7 @@ class Player(Drawable):
 
     def land(self):
         """Called when the player is airborne and collides with something below it"""
+        return
         #   Reset states
         self.airborn = False
         self.grounded = True
@@ -682,6 +687,7 @@ class Player(Drawable):
 
     def update_vertical(self, seconds):
         """Update the player's vertical (y axis) velocity"""
+        return
         #   Apply gravity when airborne
         if self.airborn or not self.grounded:
             if self.gaining and self.jump_hold_time < self.jump_hold_max and self.vel[1] < 0:

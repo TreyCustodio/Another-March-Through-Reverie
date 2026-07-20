@@ -104,7 +104,7 @@ class Room(object):
     def load(self):
         return
     
-    def draw(self, drawSurf, draw_player = True, draw_collision = True):
+    def draw(self, drawSurf, draw_player = True, draw_collision = False):
         for b in self.background:
             drawSurf.blit(b.image, vec(0,0))
             # b.draw(drawSurf)
