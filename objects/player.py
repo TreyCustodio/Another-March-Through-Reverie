@@ -29,6 +29,8 @@ class PlayerLoader:
     def get_player(cls):
         if cls._INSTANCE == None:
             cls._INSTANCE = Player()
+
+        cls._INSTANCE.vel = vec(0,0)
         return cls._INSTANCE
     
 
@@ -170,7 +172,7 @@ class Player(Drawable):
         self.camera_lock = False
 
     def get_collision_rect(self):
-        return Rect(self.position, (self.get_width(), self.get_height()))
+        return Rect((self.position[0] + 6, self.position[1]), (self.get_width() - 14, self.get_height()))
     
     def draw_shadows(self, drawSurf):
         if abs(self.vel[0]) >= self.max_speed:
@@ -212,7 +214,7 @@ class Player(Drawable):
                 self.shadow.set_position(vec(self.position[0] - 6, self.position[1]))
                 self.shadow.draw(drawSurf)
 
-    def draw(self, drawSurf):
+    def draw(self, drawSurf, draw_rect = True):
         if not self.visible:
             return
         
@@ -234,6 +236,13 @@ class Player(Drawable):
         for offset in outline_offsets:
             drawSurf.blit(outline_surface, (base_pos[0] + offset[0], base_pos[1] + offset[1]))
         
+
+        #   Display the collision rect  #
+        if draw_rect:
+            rect = self.get_collision_rect()
+            rect = rect.move(-Drawable.CAMERA_OFFSET[0], -Drawable.CAMERA_OFFSET[1])
+            pygame.draw.rect(drawSurf, (255, 20, 20), rect, 1)
+
         #   Display the velocity    #
         velocity = str(round(self.vel[0], 2))
         if abs(self.vel[0] == self.max_speed):
@@ -785,6 +794,6 @@ class Player(Drawable):
             self.camera.update(seconds, self.position.copy(), self.vel.copy(),
                             self.get_size(), self.facing, self.max_speed)
 
-        print(self.position)
-        print("===============\n")
+        # print(self.position)
+        # print("===============\n")
         

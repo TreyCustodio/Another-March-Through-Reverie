@@ -2,7 +2,7 @@ import os
 from pygame import transform, Surface, Rect, SRCALPHA, font
 from globals import SCREEN_SIZE, UPSCALED, SCALE_FACTOR, vec
 from objects import Drawable, Black, Fading, Room, Intro, RoomManager, Name,\
-    Mid_1, Und_1
+    Mid_1, Mid_S1, Und_1
 
 from UI import EventManager, AudioManager, Title
 
@@ -324,14 +324,18 @@ class DisplayManager(object):
             self.display_objects = []
             self.display_int = 0
             TITLE = None
-            
+
             # RM.set_next_room(Und_1)
-            RM.set_next_room(Mid_1)
+            # RM.set_next_room(Mid_1)
+            RM.set_next_room(Mid_S1, vec(20, UPSCALED[1] - 64 - 48))
 
 
-        def load_next(self, room):
+
+        def load_next(self, next_room):
             """Transition from title screen to a new game"""
-            RM.set_next_room(room)
+            next_position = RM.get_current_room().next_position
+            print(next_position)
+            RM.set_next_room(next_room, next_position)
             self.fade_in()
 
         def update(self, seconds) -> None:

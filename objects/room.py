@@ -23,21 +23,35 @@ HM = HudManager.getInstance()
 PE = PauseEngine.getInstance()
 
 # ==== Helper Objects ====== #
-class Tile(Drawable):
-    """Basic tile. No Collsion"""
-    def __init__(self, position, file_name, offset, size = vec(16,16), property = 0):
-        self.image = SM.getSprite(os.path.join("tiles", file_name), offset)
-        self.position = position
-        self.size = size
-        self.property = property
+# class Tile(Drawable):
+#     """Basic tile. No Collsion"""
+#     def __init__(self, position, file_name, offset, size = vec(16,16),
+#                  property = 0):
+#         """Properties:
+#         0 -> ignore collision,
+#         1 -> block collision,
+#         2 -> slope collision
+#         3 -> transition area,
+#         4 -> fire hazard,
+#         5 -> ice hazard,
+#         """
+#         self.image = SM.getSprite(os.path.join("tiles", file_name), offset)
+#         self.position = position
+#         self.size = size
+#         self.property = property
 
-    def draw(self, drawSurf):
-        drawSurf.blit(self.image, list(map(int, self.position - Drawable.CAMERA_OFFSET)))
+#     def draw(self, drawSurf):
+#         drawSurf.blit(self.image, list(map(int, self.position - Drawable.CAMERA_OFFSET)))
+
+
 
 # === Abstract Room Class ==== #
 class Room(object):
     """Draws the game, handles collision, handles events, and updates the world"""
-    def __init__(self, bgm="02", vol=2, name = "default_room", size = vec(UPSCALED[0] * 20, UPSCALED[1])):
+    def __init__(self, bgm="02", vol=2, name = "default_room", size = vec(UPSCALED[0] * 20, UPSCALED[1]),
+                 player_position = vec(0,0)):
+        
+        
         self.name = name
         self.size = size
         self.player = PlayerLoader.get_player()
@@ -57,6 +71,7 @@ class Room(object):
         self.ready_to_transition = False
         self.display_hud = True
         self.next_room = Mid_1
+        self.next_position = vec(0,0)
 
         #   Cutscene control    #
         self.text_int = 0
@@ -76,8 +91,11 @@ class Room(object):
 
         #   Tiles   #
         self.tiles = []
+        self.doors = []
 
         self.load()
+        
+        self.player.set_position(player_position)
 
         #   Hud #
         HM.init()
@@ -86,7 +104,7 @@ class Room(object):
     def load(self):
         return
     
-    def draw(self, drawSurf, draw_player = True, draw_collision = False):
+    def draw(self, drawSurf, draw_player = True, draw_collision = True):
         for b in self.background:
             drawSurf.blit(b.image, vec(0,0))
             # b.draw(drawSurf)
@@ -129,7 +147,7 @@ class Room(object):
         # drawSurf.blit(fg, vec(0, SCREEN_SIZE[1] - SCREEN_SIZE[1] // 4))
 
         for t in self.tiles:
-            t.draw(drawSurf, False)
+            t.draw(drawSurf, draw_collision)
 
         #   Dialogue    #
         if draw_player and self.speaking:
@@ -147,6 +165,9 @@ class Room(object):
         #   Handle Dialogue
         if self.speaking:
             TM.handle_events()
+        
+        elif self.ready_to_transition:
+            return
         
         #   Handle Pause
         elif self.paused:
@@ -166,34 +187,51 @@ class Room(object):
                 return
             
             #   (1) Handle Collision    #
-            #   Handle Collisions with tiles
+            #   Handle Collisions with doors
             player_rect = self.player.get_collision_rect()
-            
-            for t in self.tiles:
-                if getattr(t, "property", 0) != 1:
-                    continue
-
-                tile_rect = Rect(t.position[0], t.position[1], t.image.get_width(), t.image.get_height())
+            for d in self.doors:
+                tile_rect = Rect(d.position[0], d.position[1], d.get_width(), d.get_height())
+                
                 if not player_rect.colliderect(tile_rect):
                     continue
 
-                #   Check if player is colliding from above (landing on tile)
-                if self.player.vel[1] > 0 and player_rect.bottom >= tile_rect.top:
-                    self.player.land()
-                    self.player.position[1] = tile_rect.top - self.player.get_height()
-                    break
+                #   Transition to next area
+                self.next_room = d.get_next_room()
+                self.next_position = d.get_exit_position()
+                self.transition()
+                return
                 
-                #   Prevent horizontal movement through solid tiles
-                else:
-                    if self.player.vel[0] > 0:
-                        self.player.position[0] = tile_rect.left - self.player.get_width()
-                        self.player.vel[0] = 0
-                        break
 
-                    if self.player.vel[0] < 0:
-                        self.player.position[0] = tile_rect.right
-                        self.player.vel[0] = 0
-                        break
+            #   Handle Collisions with tiles
+            # for t in self.tiles:
+            #     #   Ignore Collision
+            #     if getattr(t, "property", 0) == 0:
+            #         continue
+                
+            #     #   Check if the player collides
+            #     tile_rect = Rect(t.position[0], t.position[1], t.image.get_width(), t.image.get_height())
+            #     if not player_rect.colliderect(tile_rect):
+            #         continue
+                
+                
+            #     #   Check if player is colliding from above (landing on tile)
+            #     if player_rect.bottom >= tile_rect.top:
+            #         if self.player.vel[1] > 0:
+            #             self.player.land()
+            #         self.player.position[1] = tile_rect.top - self.player.get_height()
+            #         break
+                
+            #     #   Prevent horizontal movement through solid tiles
+            #     else:
+            #         if self.player.vel[0] > 0:
+            #             self.player.position[0] = tile_rect.left - self.player.get_width()
+            #             self.player.vel[0] = 0
+            #             break
+
+            #         if self.player.vel[0] < 0:
+            #             self.player.position[0] = tile_rect.right
+            #             self.player.vel[0] = 0
+            #             break
             
             #   Handle Collision with Enemies
             if self.player.vulnerable:
@@ -325,16 +363,16 @@ class Room(object):
 
     def transition(self):
         self.ready_to_transition = True
-        AM.fadeout_bgm()
+        AM.fadeout_bgm(1500)
 
 class RoomManager(object):
     """Manages the currently loaded room;
     ensures that only 1 room and its assets are loaded at once"""
     CURRENT_ROOM = None
 
-    def set_next_room(self, room) -> None:
+    def set_next_room(self, room, player_position) -> None:
         del RoomManager.CURRENT_ROOM
-        RoomManager.CURRENT_ROOM = room()
+        RoomManager.CURRENT_ROOM = room(player_position = player_position)
     
     def get_current_room(self) -> Room:
         return RoomManager.CURRENT_ROOM
@@ -715,18 +753,31 @@ class Name(Room):
             self.entry_box.update(seconds)
             
 
-# ======== Playable Scenes ======== #
-# --- Middleground 1 --- #
+
+
+
+
+
+
+
+"""
+Playable Rooms!
+"""
+# ======== Middleground - West ======== #
+# --- Touchdown --- #
 class Mid_1(Room):
-    def __init__(self):
-        super().__init__(bgm="04", name="mid_1", size = vec(UPSCALED[0] * 20, 500))
+    def __init__(self, player_position = vec(0,0)):
+        super().__init__(bgm="04", name="mid_1", size = vec(UPSCALED[0] * 12, 500),
+                         player_position=player_position)
         
         #   Art #
         bk = Drawable(vec(0,0), os.path.join("middleground.png"))
         bk.image = transform.scale(bk.image, SCREEN_SIZE)
         self.background = [bk]
         self.foreground = []
-        self.player.set_position(vec(UPSCALED[0] // 2 - self.player.get_width() // 2, self.size[1] - 64 - self.player.get_height()))
+
+        # if player_position[0] == 0:
+        #     self.player.set_position(vec(UPSCALED[0] // 2 - self.player.get_width() // 2, self.size[1] - 64 - self.player.get_height()))
 
 
         # Drawable.updateOffsetPos(self.player.cam_pos, self.size)
@@ -740,7 +791,6 @@ class Mid_1(Room):
         self.enemies = [
             # Raven(vec(16*26, 16*10 + 2)),
             # Raven(vec(16*18, 16*10 + 2)),
-
         ]
         self.unloaded_enemies = []
 
@@ -750,6 +800,8 @@ class Mid_1(Room):
     def load(self):
         """Load the room's assets by calling the builder function"""
         load_room(self)
+        self.doors[0].set_next_room(Mid_S1)
+        self.doors[0].set_exit_position(vec(20, UPSCALED[1] - 64 - self.player.get_height()))
             
     def play_bgm(self):
         AM.play_ost(self.bgm, volume=self.bgm_volume,
@@ -762,6 +814,72 @@ class Mid_1(Room):
         if EM.perform_action('space'):
             txt = "Greetings.&&\nWelcome to reverie.$$It's been a while,\nhuh?$$Today I've got a pocket\nfull of chimp change.$$Glorious day."
             self.display_text(txt, row=0)
+
+# --- First Respite --- #
+class Mid_S1(Room):
+    def __init__(self, player_position = vec(0,0)):
+        super().__init__(bgm="10", name="mid_s1", size = vec(UPSCALED[0] * 2, UPSCALED[1]),
+                         player_position=player_position)
+        
+        #   Art #
+        self.foreground = []
+
+        # if player_position[0] == 0:
+            # self.player.set_position(vec(20, self.size[1] - 64 - self.player.get_height()))
+
+        #   Lists of objects in the room    #
+        self.npcs = [
+        ]
+
+        self.enemies = [
+        ]
+        self.unloaded_enemies = []
+
+        self.player.set_visible()
+    
+    def load(self):
+        """Load the room's assets by calling the builder function"""
+        load_room(self)
+        self.doors[0].set_next_room(Mid_1)
+        self.doors[0].set_exit_position(vec((UPSCALED[0] * 12) - 64, 500 - 64 - self.player.get_height()))
+
+            
+    def play_bgm(self):
+        AM.play_ost(self.bgm, volume=self.bgm_volume,
+                    play_drums=False, play_intro = True)
+        self.playing_bgm = True
+
+    def handle_events(self):
+        super().handle_events()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # --- Underground Ice 1 --- #
 class Und_1(Room):
