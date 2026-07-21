@@ -88,5 +88,8 @@ while RUNNING:
 
         display_manager.update_fps(fps)
 
-        #   Turn music low/off
-        AM.bgm_channel.set_volume(0.0)
+        #   Turn music/sfx low/off
+        # AM.silence()
+        # AM.bgm_channel.set_volume(0.0)
+        # AM.menu_channel.set_volume(0.0)
+        # AM.weapon_channel.set_volume(0.0)

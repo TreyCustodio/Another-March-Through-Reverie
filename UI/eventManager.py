@@ -25,6 +25,8 @@ class EventManager(object):
                 #   Action Commands
                 'interact': False,
                 'attack1': False,
+                'special': False,
+                'evasive': False,
                 'space': False,
 
                 #   Movement (Arrow keys, WASD, Controller Analog stick)
@@ -44,6 +46,8 @@ class EventManager(object):
             
             #   Analog stick deadzone
             self.deadzone = 0.2
+            self.down_deadzone = 0.8
+            self.up_deadzone = 0.8
             self.axis_left_active = False
             self.axis_right_active = False
             self.axis_up_active = False
@@ -54,10 +58,13 @@ class EventManager(object):
             #   Initialize any joysticks    #
             joystick_count = joystick.get_count()
             for i in range(joystick_count):
-                joy = joystick.Joystick(i)
-                joy.init()
-                self.joysticks.append(joy)
-                print(f"Initialized joystick {i}: {joy.get_name()}")
+                try:
+                    joy = joystick.Joystick(i)
+                    joy.init()
+                    self.joysticks.append(joy)
+                    print(f"Initialized joystick {i}: {joy.get_name()}")
+                except:
+                    print(f"Unable to connect Joystick {i}")
 
         def QUIT(self):
             self.quit = True
@@ -134,6 +141,9 @@ class EventManager(object):
                     elif ev.key == K_x:
                         self.activate('attack1')
 
+                    elif ev.key == K_v:
+                        self.activate('evasive')
+
                     elif ev.key == K_LEFT:
                         self.activate('motion_left')
                     
@@ -174,6 +184,10 @@ class EventManager(object):
                     
                     elif ev.key == K_SPACE:
                         self.deactivate('space')
+                    
+                    elif ev.key == K_v:
+                        self.deactivate('evasive')
+
 
                 #   Mouse Controls  #
                 elif ev.type == MOUSEMOTION:
@@ -185,34 +199,42 @@ class EventManager(object):
                 elif ev.type == MOUSEBUTTONUP:
                     pass
 
-                #   Gamecube Controls   #
+                #   Switch Controls   #
                 #   Buttons Down
                 elif ev.type == JOYBUTTONDOWN:
-                    if ev.button == 2:  # A Button
+                    if ev.button == 1:  # B Button
                         self.activate('interact')
+
+                    elif ev.button == 2:  # X Button
+                        self.activate('special')
                     
-                    elif ev.button == 3:  # B Button
+                    elif ev.button == 3:  # Y Button
                         self.activate('attack1')
                     
-                    elif ev.button == 0:  # Y Button
-                        self.activate('space')
+                    elif ev.button == 0:  # A Button
+                        self.activate('evasive')
                     
                     elif ev.button == 9:  # Start Button
                         self.activate('pause')
 
                 #   Buttons Up
                 elif ev.type == JOYBUTTONUP:
-                    if ev.button == 2:  # A Button
+                    if ev.button == 1:  # B Button
                         self.deactivate('interact')
+
+                    elif ev.button == 2:  # X Button
+                        self.deactivate('special')
                     
-                    elif ev.button == 3:  # B Button
+                    elif ev.button == 3:  # Y Button
                         self.deactivate('attack1')
                     
-                    elif ev.button == 0:  # Y Button
-                        self.deactivate('space')
+                    elif ev.button == 0:  # A Button
+                        self.deactivate('evasive')
                     
                     elif ev.button == 9:  # Start Button
                         self.deactivate('pause')
+
+                  
 
                 #   Analog Stick Motion
                 elif ev.type == JOYAXISMOTION:
@@ -236,7 +258,7 @@ class EventManager(object):
                                 self.axis_right_active = False
                     
                     elif ev.axis == 1:  # Left Analog Stick Y Axis
-                        if ev.value < -self.deadzone:
+                        if ev.value < -self.up_deadzone:
                             if not self.axis_up_active:
                                 self.activate('motion_up')
                                 self.axis_up_active = True
@@ -245,7 +267,7 @@ class EventManager(object):
                                 self.deactivate('motion_up')
                                 self.axis_up_active = False
                         
-                        if ev.value > self.deadzone:
+                        if ev.value > self.down_deadzone:
                             if not self.axis_down_active:
                                 self.activate('motion_down')
                                 self.axis_down_active = True

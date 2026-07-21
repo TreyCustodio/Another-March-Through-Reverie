@@ -43,11 +43,17 @@ class SpriteManager(object):
 
          #  Hud   #
          join("misc", "heart.png"):   (102,26),
-         "shot.png":    (16,16),
          
          #  Menu Icons  #
          "pointer.png": (33,16),
          'triangle.png': (32, 16),
+
+         #  Effects  #
+         "shot.png":    (16,16),
+         join("misc", "shot_2.png"):   (26,16),
+
+         'fire_shield.png': (64, 48),
+         'reflector.png': (48,48),
 
          #  Other #
          'celestial.png': (64,64),

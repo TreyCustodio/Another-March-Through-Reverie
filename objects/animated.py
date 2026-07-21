@@ -10,7 +10,7 @@ class State(object):
     """Represents a state of animation"""
     def __init__(self, file_name = 'null.png',
                  starting_frame = 0, row = 0, fps = 8, num_frames = 1,
-                 loop = False, loop_start = 0, loop_end = 0,
+                 loop = False, loop_start = 0, loop_end = 0, loop_fps = 8,
                  flip_x = False, flip_y = False,
                  offset = vec(0,0)):
         
@@ -19,6 +19,7 @@ class State(object):
         self.starting_frame = starting_frame
         self.row = row
         self.fps = fps
+        self.loop_fps = loop_fps
         self.num_frames = num_frames
         self.flip_x = flip_x
         self.flip_y = flip_y
@@ -41,6 +42,9 @@ class State(object):
     
     def get_fps(self) -> int:
         return self.fps
+    
+    def get_loop_fps(self) -> int:
+        return self.loop_fps
     
     def get_num_frames(self) -> int:
         return self.num_frames
@@ -84,7 +88,10 @@ class Animated(Drawable):
     
     def get_fps(self) -> int:
         return self.get_current_state().get_fps()
-
+    
+    def get_loop_fps(self) -> int:
+        return self.get_current_state().get_loop_fps()
+    
     def get_row(self) -> int:
         return self.get_current_state().get_row()
     
@@ -119,6 +126,12 @@ class Animated(Drawable):
 
             else:
                 current_state = self.get_current_state()
+
+                #   Fail-safe Wrap-around
+                if self.frame >= current_state.num_frames:
+                    self.frame = 0
+
+                #   Set the new Image
                 new_image = current_state.frames[self.frame]
 
             #   Transform the image if needed
@@ -138,43 +151,24 @@ class Animated(Drawable):
             file_name = current_state.get_file_name()
             row = current_state.get_row()
 
-            #   Define and Set the image   #
-            new_image = SM.getSprite(file_name, (self.frame, row))
+            #   Define and Set the image safely
+            try:
+                new_image = SM.getSprite(file_name, (self.frame, row))
+            except:
+                new_image = SM.getSprite(file_name, (0, row))
+
+            #   Transform the image
             if current_state.flip_x or current_state.flip_y:
                 new_image = transform.flip(new_image, current_state.flip_x, current_state.flip_y)
             super().set_image(new_image)
     
     def update(self, seconds):
         """Update the animation"""
-        if self.animation_timer >= (1/self.get_fps()):
-            if self.playing_animation:
-                self.animation_frame += 1
-                if self.animation_frame == self.animation_end + 1:
-                    self.playing_animation = False
-                else:
-                    self.animation_timer = 0.0
-                    self.set_image()
-            else:
-                #   Get the current state
-                current_state = self.get_current_state()
-
-                #   Finish the animation before the next
-                if self.switching_states:
-                    if self.frame == self.last_frame:
-                        self.state = self.next_state
-                        self.frame = self.get_current_state().get_starting_frame()
-                        self.animation_timer = 0.0
-                        self.switching_states = False
-                        self.set_image()
-                        return
-                    else:
-                        self.frame += 1
-                        self.animation_timer = 0.0
-                        self.set_image()
-                        return
-
-                #   Loop the animation if needed
-                if current_state.loop and self.frame >= current_state.loop_start:
+        current_state = self.get_current_state()
+        if current_state.loop:
+            if self.animation_timer >= (1/self.get_loop_fps()):
+                #   Loop the animation
+                if self.frame >= current_state.loop_start:
                     if self.frame == current_state.loop_end:
                         self.frame = current_state.loop_start
                     else:
@@ -184,9 +178,56 @@ class Animated(Drawable):
                 else:
                     self.frame += 1
                     self.frame %= self.get_num_frames()
-                    
+                
                 #   Reset the timer and set the image
                 self.animation_timer = 0.0
                 self.set_image()
+                
+            else:
+                self.animation_timer += seconds
+        
         else:
-            self.animation_timer += seconds
+            if self.animation_timer >= (1/self.get_fps()):
+                if self.playing_animation:
+                    self.animation_frame += 1
+                    if self.animation_frame == self.animation_end + 1:
+                        self.playing_animation = False
+                    else:
+                        self.animation_timer = 0.0
+                        self.set_image()
+                else:
+                    #   Get the current state
+                    current_state = self.get_current_state()
+
+                    #   Finish the animation before the next
+                    if self.switching_states:
+                        if self.frame == self.last_frame:
+                            self.state = self.next_state
+                            self.frame = self.get_current_state().get_starting_frame()
+                            self.animation_timer = 0.0
+                            self.switching_states = False
+                            self.set_image()
+                            return
+                        else:
+                            self.frame += 1
+                            self.animation_timer = 0.0
+                            self.set_image()
+                            return
+
+                    #   Loop the animation if needed
+                    if current_state.loop and self.frame >= current_state.loop_start:
+                        if self.frame == current_state.loop_end:
+                            self.frame = current_state.loop_start
+                        else:
+                            self.frame += 1
+
+                    #   Progress the animation normally
+                    else:
+                        self.frame += 1
+                        self.frame %= self.get_num_frames()
+                        
+                    #   Reset the timer and set the image
+                    self.animation_timer = 0.0
+                    self.set_image()
+            else:
+                self.animation_timer += seconds

@@ -9,6 +9,7 @@ The level editor will add functions to room_data.
 
 # Load a room from the dictionary of functions
 def load_room(room):
+    # room.player.land()
     return room_data[room.name](room)
 
 # Dictionary of rooms mapped to their builder functions

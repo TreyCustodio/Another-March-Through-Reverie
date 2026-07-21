@@ -67,23 +67,25 @@ class Shot(Weapon):
         
         velocity = vec(speed, 0) if direction == 'right' else vec(-speed, 0)
 
-        super().__init__(position, file_name=path.join("misc", "shot.png"),
+        super().__init__(position, file_name=path.join("misc", "shot_2.png"),
                          life_time=1.0, velocity=velocity, damage=1)
 
         if direction == "left":
-            self.add_state("idle", State(path.join("misc", "shot.png"), row=1, fps=32, num_frames = 6))
+            self.add_state("idle", State(path.join("misc", "shot_2.png"), row=0, fps=16, num_frames = 2))
         elif direction == "right":
-            self.add_state("idle", State(path.join("misc", "shot.png"), row=0, fps=32, num_frames = 6))
+            self.add_state("idle", State(path.join("misc", "shot_2.png"), row=1, fps=16, num_frames = 2))
+
+        self.set_image()
 
     def draw(self, drawSurf):
-        outline_surface = pygame.Surface(self.image.get_size(), pygame.SRCALPHA)
-        mask = pygame.mask.from_surface(self.image)
-        mask.to_surface(outline_surface, setcolor=(50,0,0, 255), unsetcolor=(0,0,0,0))
+        # outline_surface = pygame.Surface(self.image.get_size(), pygame.SRCALPHA)
+        # mask = pygame.mask.from_surface(self.image)
+        # mask.to_surface(outline_surface, setcolor=(50,0,0, 255), unsetcolor=(0,0,0,0))
 
-        base_pos = list(map(int, self.position - Drawable.CAMERA_OFFSET))
-        outline_offsets = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-        for offset in outline_offsets:
-            drawSurf.blit(outline_surface, (base_pos[0] + offset[0], base_pos[1] + offset[1]))
+        # base_pos = list(map(int, self.position - Drawable.CAMERA_OFFSET))
+        # outline_offsets = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        # for offset in outline_offsets:
+        #     drawSurf.blit(outline_surface, (base_pos[0] + offset[0], base_pos[1] + offset[1]))
         super().draw(drawSurf)
         
 

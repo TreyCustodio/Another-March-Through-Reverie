@@ -1,6 +1,9 @@
 from globals import vec, SCREEN_SIZE, UPSCALED
 from . import Drawable
 
+PLAYER_WIDTH = 48
+PLAYER_HEIGHT = 48
+
 class Camera:
     """The Camera"""
     def __init__(self, position):
@@ -12,8 +15,7 @@ class Camera:
         self.locked = False
         self.idle_frames = 32
         self.frame_counter = 32
-
-
+        
 
 
     def get_position(self) -> vec:
@@ -21,9 +23,10 @@ class Camera:
     
     def update(self, seconds, player_position, player_velocity,
                player_size, player_direction, max_player_speed) -> None:
+        
         """Position the camera as desired"""
-        self.position[0] = int(player_position[0]) + (player_size[0] // 2)
-        self.position[1] = int(player_position[1]) + (player_size[1] // 2)
+        self.position[0] = int(player_position[0]) + (PLAYER_WIDTH // 2)
+        self.position[1] = int(player_position[1]) + (PLAYER_HEIGHT // 2)
 
         #   Optional display routine
         # print("=========================")

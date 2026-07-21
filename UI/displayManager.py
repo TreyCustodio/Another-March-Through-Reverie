@@ -7,7 +7,7 @@ from objects import Drawable, Black, Fading, Room, Intro, RoomManager, Name,\
 from UI import EventManager, AudioManager, Title
 
 
-EVENT_MANAGER = EventManager.getInstance()
+EM = EventManager.getInstance()
 AM = AudioManager.getInstance()
 RM = RoomManager()
 TITLE = Title()
@@ -264,13 +264,13 @@ class DisplayManager(object):
 
                 #   Title Screen Appearing  #
                 if self.display_int < 7:
-                    if EVENT_MANAGER.perform_action('interact'):
+                    if EM.perform_action('interact') or EM.perform_action('evasive') or EM.perform_action('attack1') or EM.perform_action('pause'):
                         AM.fadeAllSFX(100)
                         self.set_title_menu()
                         self.display_int = 7
                 
                 elif self.display_int == 7:
-                    if EVENT_MANAGER.perform_action('interact'):
+                    if EM.perform_action('interact') or EM.perform_action('evasive') or EM.perform_action('attack1') or EM.perform_action('pause'):
                         AM.fadeAllSFX(100)
                         self.display_objects[0][0].set_opaque()
                         self.display_objects[2][0].set_opaque()
@@ -281,10 +281,10 @@ class DisplayManager(object):
 
             return
             #   Fade Control Testing    #
-            if EVENT_MANAGER.perform_action('interact'):
+            if EM.perform_action('interact'):
                 self.fade_out()
             
-            if EVENT_MANAGER.perform_action('attack1'):
+            if EM.perform_action('attack1'):
                 self.fade_in()
 
         def fading(self) -> bool:
@@ -314,7 +314,7 @@ class DisplayManager(object):
             self.display_int = 0
             TITLE = None
 
-            RM.set_next_room(Intro)
+            RM.set_next_room(Intro, vec(0,0))
             # RM.set_next_room(Name)
 
         

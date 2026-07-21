@@ -104,7 +104,7 @@ class Room(object):
     def load(self):
         return
     
-    def draw(self, drawSurf, draw_player = True, draw_collision = False):
+    def draw(self, drawSurf, draw_player = True, draw_collision = True):
         for b in self.background:
             drawSurf.blit(b.image, vec(0,0))
             # b.draw(drawSurf)
@@ -203,35 +203,41 @@ class Room(object):
                 
 
             #   Handle Collisions with tiles
-            # for t in self.tiles:
-            #     #   Ignore Collision
-            #     if getattr(t, "property", 0) == 0:
-            #         continue
+            for t in self.tiles:
+                #   Ignore Collision
+                if getattr(t, "property", 0) == 0:
+                    continue
                 
-            #     #   Check if the player collides
-            #     tile_rect = Rect(t.position[0], t.position[1], t.image.get_width(), t.image.get_height())
-            #     if not player_rect.colliderect(tile_rect):
-            #         continue
+                #   Check if the player collides
+                tile_rect = Rect(t.position[0], t.position[1], t.image.get_width(), t.image.get_height())
+                if not player_rect.colliderect(tile_rect):
+                    continue
                 
                 
-            #     #   Check if player is colliding from above (landing on tile)
-            #     if player_rect.bottom >= tile_rect.top:
-            #         if self.player.vel[1] > 0:
-            #             self.player.land()
-            #         self.player.position[1] = tile_rect.top - self.player.get_height()
-            #         break
+                #   Check if player is colliding from above (landing on tile)
+                if player_rect.bottom >= tile_rect.top and tile_rect.top >= self.player.position[1]:
+                    if self.player.airborn and not EM.is_active("interact"):
+                        self.player.land()
+                    self.player.position[1] = tile_rect.top - self.player.get_height()
+                    break
                 
-            #     #   Prevent horizontal movement through solid tiles
-            #     else:
-            #         if self.player.vel[0] > 0:
-            #             self.player.position[0] = tile_rect.left - self.player.get_width()
-            #             self.player.vel[0] = 0
-            #             break
+                #   Check if player is colliding from below (touching ceiling)
+                elif player_rect.top <= tile_rect.bottom and tile_rect.top <= self.player.position[1]:
+                    EM.deactivate('interact')
+                    self.player.position[1] = tile_rect.bottom + 2
+                    break
 
-            #         if self.player.vel[0] < 0:
-            #             self.player.position[0] = tile_rect.right
-            #             self.player.vel[0] = 0
-            #             break
+                #   Prevent horizontal movement through solid tiles
+                else:
+                    if self.player.vel[0] > 0:
+                        self.player.position[0] = tile_rect.left - self.player.get_width()
+                        self.player.vel[0] = 0
+                        break
+
+                    if self.player.vel[0] < 0:
+                        self.player.position[0] = tile_rect.right
+                        self.player.vel[0] = 0
+                        break
             
             #   Handle Collision with Enemies
             if self.player.vulnerable:
@@ -380,7 +386,7 @@ class RoomManager(object):
 # ======== Cutscenes ======= #
 # --- Intro Cutscene --- #
 class Intro(Room):
-    def __init__(self):
+    def __init__(self, player_position = vec(0,0)):
         super().__init__(bgm="02")
         self.bk = Drawable(vec(0,0), "space.png")
         self.earth = Drawable(vec(SCREEN_SIZE[0] // 2 + 64, 80), "celestial.png", (3,1))
@@ -452,7 +458,7 @@ class Intro(Room):
 
         
         elif self.text_int == 3:
-            if not AM.bgm_channel.get_busy():
+            if not AM.bgm_channel.get_busy() or int(AM.bgm_channel.get_volume()) == 0:
                 self.ready_to_transition = True
                 self.text_int += 1
             return
@@ -464,7 +470,7 @@ class Intro(Room):
 
 # --- Naming the Player --- #
 class Name(Room):
-    def __init__(self):
+    def __init__(self, player_position = vec(0,0)):
         super().__init__(bgm="03", vol=20)
 
         self.display_hud = False
@@ -775,10 +781,9 @@ class Mid_1(Room):
         bk.image = transform.scale(bk.image, SCREEN_SIZE)
         self.background = [bk]
         self.foreground = []
-
-        # if player_position[0] == 0:
-        #     self.player.set_position(vec(UPSCALED[0] // 2 - self.player.get_width() // 2, self.size[1] - 64 - self.player.get_height()))
-
+        
+        if int(self.player.position[0] == 0):
+            self.player.set_position(vec(UPSCALED[0] // 2 - self.player.get_width() // 2, self.size[1] - 64 - self.player.get_height()))
 
         # Drawable.updateOffsetPos(self.player.cam_pos, self.size)
 
@@ -846,7 +851,7 @@ class Mid_S1(Room):
             
     def play_bgm(self):
         AM.play_ost(self.bgm, volume=self.bgm_volume,
-                    play_drums=False, play_intro = True)
+                    play_drums=False, play_intro = False)
         self.playing_bgm = True
 
     def handle_events(self):

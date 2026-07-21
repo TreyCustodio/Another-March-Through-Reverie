@@ -154,7 +154,7 @@ class Title(object):
 
     def handle_events(self):
         #   Select the Option   #
-        if EM.perform_action('interact'):
+        if EM.perform_action('interact') or EM.perform_action('evasive') or EM.perform_action('attack1') or EM.perform_action('pause'):
             #   Start a new game
             if self.pointer_position == 0:
                 self.start_new = True

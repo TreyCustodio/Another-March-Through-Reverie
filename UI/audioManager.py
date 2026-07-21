@@ -90,6 +90,11 @@ class AudioManager(object):
         def get_current_track(self) -> Track:
             return self.ost[self.currently_playing]
         
+        def silence(self):
+            self.bgm_channel.set_volume(0.0)
+            self.menu_channel.set_volume(0.0)
+            self.weapon_channel.set_volume(0.0)
+
         def play_ost(self, name, play_intro = False, play_outro = False, play_drums = True, volume = 1.0, fade_in = 0):
             """Play a track from the original soundtrack"""
             if name not in self.ost:
