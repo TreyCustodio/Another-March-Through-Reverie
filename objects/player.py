@@ -33,6 +33,9 @@ BASE_HEIGHT = 48
     (6) Smooth Animation (criminal)
         (a) Lift-off animation
         (b) Flying start animation
+        (c) Flying stop animation
+        (c) Flying shooting animation
+
 """
 
 
@@ -73,11 +76,11 @@ class Player(Drawable):
 
         walk_fps = 32
         run_fps = 32
-        # shot_fps = 64
-        # shot_fps = 16
+        shot_fps = 64
+        start_fly_fps = 64
         
         self.states = {
-            # state: [file_name, starting_frame, row, fps, nFrames]
+            #   ==== Ground States ====   #
             'idle': Player_State("weaver.png", starting_frame=0, row=0, fps=16, num_frames=48),
             'idle_right': Player_State("weaver.png", 0, 0, 16, 48),
             'idle_left': Player_State("weaver.png", 0, 1, 16, 48),
@@ -91,17 +94,30 @@ class Player(Drawable):
             'crouching_right': Player_State("weaver_crouch.png", 0, 0, 32, 11, loop=True, loop_start = 3, loop_end=5, loop_fps = 32, flip_x=False),
             'crouching_left': Player_State("weaver_crouch.png", 0, 0, 32, 11, loop=True, loop_start = 3, loop_end=5, loop_fps = 32, flip_x=True),
 
-            'shooting_right': Player_State("weaver_shot.png", 0, 0, 64, 12, loop = True, loop_start = 3, loop_end = 8, loop_fps= 64, flip_x=False),
-            'shooting_left': Player_State("weaver_shot.png", 0, 0, 64, 12, loop=True, loop_start = 3, loop_end = 8, loop_fps = 64, flip_x=True),
-
+            'shooting_right': Player_State("weaver_shot.png", 0, 0, shot_fps, 12, loop = True, loop_start = 3, loop_end = 8, loop_fps= 64, flip_x=False),
+            'shooting_left': Player_State("weaver_shot.png", 0, 0, shot_fps, 12, loop=True, loop_start = 3, loop_end = 8, loop_fps = 64, flip_x=True),
+            
+            
+            #   ==== Aerial States ====   #
             'hovering_right': Player_State("weaver_jump.png", row = 0, starting_frame = 0, fps = 64, num_frames = 13, loop=True, loop_start = 5, loop_end = 8, loop_fps=12),
             'hovering_left': Player_State("weaver_jump.png", row = 1, starting_frame = 0, fps = 64, num_frames = 13, loop=True, loop_start = 7, loop_end = 8, loop_fps=12),
-
+            
             'flying_right': Player_State("weaver_fly.png", row = 0, starting_frame = 0, fps = 64, num_frames = 12, loop=True, loop_start = 5, loop_end = 8, loop_fps=12),
             'flying_left': Player_State("weaver_fly.png", row = 0, starting_frame = 0, fps = 64, num_frames = 12, loop=True, loop_start = 7, loop_end = 8, loop_fps=12, flip_x=True),
 
-            'aerial_shot_right': Player_State("weaver_shot.png", 0, 0, 64, 12, loop = True, loop_start = 3, loop_end = 8, loop_fps= 64, flip_x=False),
-            'aerial_shot_left': Player_State("weaver_shot.png", 0, 0, 64, 12, loop=True, loop_start = 3, loop_end = 8, loop_fps = 64, flip_x=True),
+            'flying_start_right': Player_State("weaver_fly_start.png", row = 0, starting_frame = 0, fps = start_fly_fps, num_frames = 5),
+            'flying_start_left': Player_State("weaver_fly_start.png", row = 0, starting_frame = 0, fps = start_fly_fps, num_frames = 5, flip_x=True),
+
+            'flying_stop_right': Player_State("weaver_fly_start.png", row = 1, starting_frame = 0, fps = start_fly_fps, num_frames = 5),
+            'flying_stop_left': Player_State("weaver_fly_start.png", row = 1, starting_frame = 0, fps = start_fly_fps, num_frames = 5, flip_x=True),
+
+            'aerial_shot_right': Player_State("weaver_shot.png", 0, 0, shot_fps, 12, loop = True, loop_start = 3, loop_end = 8, loop_fps= 64, flip_x=False),
+            'aerial_shot_left': Player_State("weaver_shot.png", 0, 0, shot_fps, 12, loop=True, loop_start = 3, loop_end = 8, loop_fps = 64, flip_x=True),
+
+
+            #   ==== Misc States ====   #
+            'hurt_right': Player_State("weaver_jump.png", row = 2, starting_frame = 0, fps = 64, num_frames = 13, loop=True, loop_start = 5, loop_end = 8, loop_fps=12),
+            'hurt_left': Player_State("weaver_jump.png", row = 3, starting_frame = 0, fps = 64, num_frames = 13, loop=True, loop_start = 7, loop_end = 8, loop_fps=12),
         }
 
         # self.states = {
@@ -314,11 +330,13 @@ class Player(Drawable):
     def set_idle(self, direction = 'left'):
         if self.airborn:
             if direction == 'left':
-                self.set_state('hovering_left')
+                self.set_state("flying_stop_left")
+                self.set_state('hovering_left', finish_animation=True, last_frame=4)
                 self.facing = 'left'
                 
             elif direction == 'right':
-                self.set_state('hovering_right')
+                self.set_state('flying_stop_right')
+                self.set_state('hovering_right', finish_animation=True, last_frame=4)
                 self.facing = 'right'
         else:
             if direction == 'left':
@@ -384,6 +402,21 @@ class Player(Drawable):
                 self.set_state('crouching_right')
             elif self.facing == 'left':
                 self.set_state('crouching_left')
+    
+    def fly(self, move = True):
+        #   Perform the flying start animation
+        #   Then enter the flying state once it is finished
+        if self.facing == "left":
+            self.set_state("flying_start_left")
+            self.set_state("flying_left", finish_animation=True, last_frame=4)
+        elif self.facing == "right":
+            self.set_state("flying_start_right")
+            self.set_state("flying_right", finish_animation=True, last_frame=4)
+        
+        #   Start moving if stationary
+        if move:
+            self.move()
+
 
     def exit_crouch(self):
         EM.deactivate('interact')
@@ -440,42 +473,34 @@ class Player(Drawable):
     
     def land(self):
         """Called when the player is airborne and collides with something below it"""
-        if self.shooting():
-            return
-        
         #   Reset states
         self.airborn = False
         self.vel[1] = 0
-        EM.deactivate('interact')
+        self.vel[0] = 0
 
-
-        if self.facing == "left":
-            self.set_state("idle_left", finish_animation=True, last_frame=12)
-        elif self.facing == "right":
-            self.set_state("idle_right", finish_animation=True, last_frame=12)
+        
+        #   Enter shooting (ground) state
+        if self.shooting():
+            if self.facing == "left":
+                self.set_state("shooting_left", optional_start_frame=self.frame)
+            elif self.facing == "right":
+                self.set_state("shooting_right", optional_start_frame=self.frame)
+        else:
+            #   Enter Idle State
+            if self.flying():
+                if self.facing == "left":
+                    self.set_state("flying_stop_left")
+                    self.set_state("idle_left", finish_animation=True, last_frame=4)
+                elif self.facing == "right":
+                    self.set_state("flying_stop_right")
+                    self.set_state("idle_right", finish_animation=True, last_frame=4)
+            else:
+                if self.facing == "left":
+                    self.set_state("idle_left", finish_animation=True, last_frame=12)
+                elif self.facing == "right":
+                    self.set_state("idle_right", finish_animation=True, last_frame=12)
 
         return
-    
-        self.grounded = True
-        self.gaining = False
-        self.boosting = False
-
-        #   Set the y velocity to 0
-        self.vel[1] = 0
-
-        #  Reset animation based on horizontal velocity and facing
-        if self.vel[0] < 0:
-            self.set_state('walking_left')
-        elif self.vel[0] > 0:
-            self.set_state('walking_right')
-        else:
-            if self.facing == 'left':
-                self.set_state('idle_left')
-            else:
-                self.set_state('idle_right')
-
-        #   Deactivate the interact button
-        EM.deactivate('interact')
             
     def damage(self, enemy):
         """Apply damage from an enemy and start invulnerability cooldown."""
@@ -638,6 +663,10 @@ class Player(Drawable):
     def aerial(self) -> bool:
         """Not implemented yet"""
         return self.airborn
+
+    def hurt(self) -> bool:
+        """Return True if the player has been hurt"""
+        return self.state == "hurt_left" or self.state == "hurt_right"
     
 
     # ===================================
@@ -658,12 +687,12 @@ class Player(Drawable):
         if EM.is_active('motion_left'):
             self.facing = 'left'
             
+            #   Aerial  #
             if self.airborn:
                 #   Start Flying
                 if self.stationary():
                     EM.deactivate("motion_right")
-                    self.set_state("flying_left")
-                    self.move()
+                    self.fly()
 
                 #   Turn Around
                 elif self.moving():
@@ -672,25 +701,30 @@ class Player(Drawable):
                         self.set_state("flying_left", optional_start_frame=self.frame % 9)
                 return
             
+            #   Ground  #
             #   Turn around
             if self.state == "running_right":
                 self.set_state("running_left", optional_start_frame=self.frame % 9)
                 self.turn()
                 EM.deactivate('motion_right')
+
                 return
 
             elif self.state == "walking_right":
                 self.set_state('walking_left')
                 self.turn()
                 EM.deactivate('motion_right')
+
                 return
 
             #   Start walking
             if not self.walking() and not self.running():
                 #   The player is idle
+                print("walking now\n")
                 self.move()
                 self.set_state('walking_left')
                 EM.deactivate('motion_right')
+
 
         else:
             if self.state == "walking_left" or self.state == "running_left":
@@ -708,8 +742,7 @@ class Player(Drawable):
                 #   Start Flyin'
                 if self.stationary():
                     EM.deactivate("motion_left")
-                    self.set_state("flying_right")
-                    self.move()
+                    self.fly()
 
                 #   Turn Around
                 elif self.moving():
@@ -761,11 +794,7 @@ class Player(Drawable):
                         self.set_state("hovering_right")
                 
                 elif self.moving():
-                    if self.facing == "left":
-                        self.set_state("flying_left")
-
-                    elif self.facing == "right":
-                        self.set_state("flying_right")
+                    self.fly(move = False)
 
                 self.airborn = True
             else:
@@ -800,41 +829,6 @@ class Player(Drawable):
     def check_interact(self):
         """Check for *Interact* """
         return
-        #   Jumping / Sliding   #
-        if EM.is_active('interact'):
-            if not self.airborn:
-                if self.stationary():
-                    if self.facing == "left":
-                        self.set_state("hovering_left")
-                    elif self.facing == "right":
-                        self.set_state("hovering_right")
-                
-                elif self.moving():
-                    if self.facing == "left":
-                        self.set_state("flying_left")
-
-                        # self.set_state("hovering_left")
-                        # self.set_state("flying_left", finish_animation=True, last_frame=5)
-
-
-                    elif self.facing == "right":
-                        self.set_state("flying_right")
-
-                        # self.set_state("hovering_right")
-                        # self.set_state("flying_right", finish_animation=True, last_frame=5)
-
-
-                self.airborn = True
-            
-            #   Enter the air
-            self.vel[1] = self.jump_force
-
-            #   Slide attack
-            if self.crouching:
-                return
-        else:
-            if not EM.is_active('motion_down'):
-                self.vel[1] = 0
             
     def check_attack(self):
         """Check for *Attack 1* """
@@ -844,19 +838,20 @@ class Player(Drawable):
             if self.stationary():
                 #   Aerial Shot
                 if self.airborn:
-                    if self.state != "aerial_shot_right" and self.state != "aerial_shot_left":
-                        if self.facing == "right":
-                            self.set_state("aerial_shot_right")
-                        elif self.facing == "left":
-                            self.set_state("aerial_shot_left")
-                    elif self.frame == 6:
-                        if not self.cooling_down:
-                            self.shoot()
-                    else:
-                        return
+                    if abs(self.vel[0]) <= 100:
+                        if self.state != "aerial_shot_right" and self.state != "aerial_shot_left":
+                            if self.facing == "right":
+                                self.set_state("aerial_shot_right")
+                            elif self.facing == "left":
+                                self.set_state("aerial_shot_left")
+                        elif self.frame == 6:
+                            if not self.cooling_down:
+                                self.shoot()
+                        else:
+                            return
                 
                 #   Ground Shot
-                elif abs(self.vel[0]) <= 320:
+                elif abs(self.vel[0]) <= 220:
                     if self.state != "shooting_right" and self.state != "shooting_left":
                         if self.facing == "right":
                             self.set_state("shooting_right")
@@ -898,29 +893,36 @@ class Player(Drawable):
         """Check *Map* """
         return
     
-
+    def check_recovery(self):
+        """Check for the player's recovery technique"""
+        if self.airborn:
+            pass
+        else:
+            pass
+        return
+    
     def handle_events(self):
-        if not self.visible:
+        """Logic flow for event handling"""
+        if (not self.visible) or self.key_lock or self.switching_states:
             return
         
-        if self.key_lock:
+        if self.hurt():
+            if not self.vulnerable:
+                self.check_recovery()
             return
         
-        if self.switching_states:
-            return
-        
-        if not self.crouching and not self.attacking:
-            self.check_left()
-            self.check_right()
-        
-        if not self.attacking:
-            self.check_down()
-            self.check_up()
-            self.check_interact()
-
-
         if not self.crouching:
             self.check_attack()
+
+            if not self.shooting():
+                self.check_left()
+                self.check_right()
+        
+        if not self.attacking:
+            self.check_interact()
+        
+        self.check_down()
+        self.check_up()
     
 
     # ===================================
@@ -996,18 +998,6 @@ class Player(Drawable):
                 self.vel[1] -= self.jump_acceleration * seconds
 
         return
-        #   Apply gravity when airborne
-        if self.airborn or not self.grounded:
-            if self.gaining and self.jump_hold_time < self.jump_hold_max and self.vel[1] < 0:
-                self.vel[1] -= self.jump_hold_gravity * seconds
-                self.jump_hold_time += seconds
-                if self.jump_hold_time >= self.jump_hold_max:
-                    self.gaining = False
-                    EM.deactivate("interact")
-            # elif EM.is_active('interact') and self.vel[1] >= 0:
-            #     self.vel[1] = 0
-            else:
-                self.vel[1] += GRAVITY * seconds
 
     def update_horizontal(self, seconds):
         """Update the player's horizontal (x axis) velocity"""
@@ -1061,6 +1051,12 @@ class Player(Drawable):
     def update_animation(self, seconds):
         if self.switching_states:
             if self.animation_timer >= (1/self.get_fps()):
+                print("State:", self.state)
+                print("Next State:", self.next_state)
+                print("Frame:", self.frame)
+                print("Last Frame:", self.last_frame)
+                print()
+
                 if self.frame == self.last_frame:
                     #   Adjust offset
                     
