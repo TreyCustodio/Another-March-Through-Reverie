@@ -1,4 +1,5 @@
 from pygame import transform
+from os import path
 
 from . import Drawable
 from globals import vec
@@ -53,6 +54,20 @@ class State(object):
         return self.starting_frame
     
     
+class Player_State(State):
+    """Acquires sprites from the player's directory"""
+    def __init__(self, file_name = 'null.png',
+                 starting_frame = 0, row = 0, fps = 8, num_frames = 1,
+                 loop = False, loop_start = 0, loop_end = 0, loop_fps = 8,
+                 flip_x = False, flip_y = False,
+                 offset = vec(0,0)):
+        
+        super().__init__(path.join("player", file_name),
+                    starting_frame, row, fps, num_frames,
+                    loop, loop_start, loop_end, loop_fps,
+                    flip_x, flip_y,
+                    offset)
+
 
 class Animated(Drawable):
     """Represents a Drawable object that can be Animated"""

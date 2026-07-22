@@ -45,28 +45,28 @@ class SpriteManager(object):
          join("misc", "heart.png"):   (102,26),
          
          #  Menu Icons  #
-         "pointer.png": (33,16),
-         'triangle.png': (32, 16),
+         "pointer.png":    (33,16),
+         'triangle.png':   (32, 16),
 
          #  Effects  #
-         "shot.png":    (16,16),
+         "shot.png":                   (16,16),
          join("misc", "shot_2.png"):   (26,16),
-
-         'fire_shield.png': (64, 48),
-         'reflector.png': (48,48),
+         'fire_shield.png':            (64, 48),
+         'reflector.png':              (48,48),
 
          #  Other #
          'celestial.png': (64,64),
 
          #  Player   #
-         'samus.png': (32, 40),
-         'weaver.png': (48, 48),
-         'weaver_jump.png': (48, 57),
-         'weaver_walk.png': (48, 48),
-         'weaver_run.png': (48, 48),
-         'weaver_crouch.png': (48, 48),
-         'weaver_shot.png': (59, 48),
-
+         # 'samus.png': (32, 40),
+         join("player", 'weaver.png'):             (48, 48),
+         join("player", 'weaver_jump.png'):        (48, 57),
+         join("player", 'weaver_walk.png'):        (48, 48),
+         join("player", 'weaver_run.png'):         (48, 48),
+         join("player", 'weaver_crouch.png'):      (48, 48),
+         join("player", 'weaver_shot.png'):        (59, 48),
+         join("player", 'weaver_fly.png'):         (76, 24),
+         join("player", 'weaver_fly_start.png'):   (85, 52),
 
 
          #  NPCs  #
@@ -77,8 +77,8 @@ class SpriteManager(object):
 
          #  Backgrounds #
          'sunset1.png': (1280, 40),
-         'night.png': (1280, 40),
-         'night2.png': (1280, 40),
+         'night.png':   (1280, 40),
+         'night2.png':  (1280, 40),
 
       }
       
