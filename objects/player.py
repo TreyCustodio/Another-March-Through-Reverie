@@ -149,6 +149,7 @@ class Player(Drawable):
         # }
         
         for state in self.states:
+            # self.states[state].load_frames(shrink=True)
             self.states[state].load_frames()
 
         #   Animation Properties    #
@@ -257,6 +258,7 @@ class Player(Drawable):
     def get_collision_rect(self) -> Rect:
         """Return the collision rect"""
         return Rect((self.position[0] + 6, self.position[1]), (BASE_WIDTH - 14, BASE_HEIGHT))
+        # return Rect((self.position[0] + 6, self.position[1]), (self.get_width(), self.get_height()))
 
     def get_hit_box(self) -> Rect:
         """Return the player's hit box"""
