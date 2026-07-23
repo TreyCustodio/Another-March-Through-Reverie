@@ -42,9 +42,6 @@ class AudioManager(object):
         
         return cls._INSTANCE
     
-    
-
-
 
     class _AM(object):
         """An internal AudioManager class to contain the actual code."""
@@ -83,6 +80,7 @@ class AudioManager(object):
             self.currently_playing = False # True if currently playing a track
             self.playing_intro = False # True if an intro to a track is playing
             self.playing_drums = False
+
 
         def is_busy(self):
             return pygame.mixer.get_busy()

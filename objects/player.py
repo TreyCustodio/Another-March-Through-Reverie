@@ -18,14 +18,21 @@ SM = SpriteManager.getInstance()
 BASE_WIDTH = 48
 BASE_HEIGHT = 48
 """
-    (1) Fix Collision Rect
-    (2) Fix sprite positions on shooting + hovering state
-    (3) Implement Aerial Movement
+    * (1) Fix Collision Rect
+
+    * (2) Fix sprite positions on shooting + hovering state
+
+    * (3) Implement Aerial Movement
+        (a) Press *interact* to Jump
+        (b) Press *interact again to enter flight mode
+
+    
     (4) Fix Physics
         (a) Weird sliding glitch when turning right while still holding left
         (b) Landing while flying; could be a sprite position bug
         (c) Make crouch() smoother -> experiment with deceleration
         (d) Shouldn't be able to hold boost button and keep boosting
+    
     (5) Make Shooting smoother
         (a) Transition to hovering while shooting
         (b) Fix collision detection while shooting in the air
@@ -785,6 +792,8 @@ class Player(Drawable):
         """Check for upward motion"""
         #   Upward Movement   #
         if EM.is_active('motion_up'):
+
+            
             #   Enter the air
             if not self.airborn:
                 self.vel[1] = self.jump_force

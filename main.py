@@ -90,6 +90,6 @@ while RUNNING:
 
         #   Turn music/sfx low/off
         # AM.silence()
-        # AM.bgm_channel.set_volume(0.0)
+        AM.bgm_channel.set_volume(0.0)
         # AM.menu_channel.set_volume(0.0)
         # AM.weapon_channel.set_volume(0.0)
