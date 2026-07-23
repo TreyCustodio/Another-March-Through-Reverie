@@ -27,6 +27,15 @@ class Tile(Drawable):
         self.size = size
         self.property = property
 
+    def get_size(self):
+        return self.size.copy()
+    
+    def get_width(self):
+        return self.size[0]
+
+    def get_height(self):
+        return self.size[1]
+    
     def draw(self, drawSurf, draw_rect = False):
         drawSurf.blit(self.image, list(map(int, self.position - Drawable.CAMERA_OFFSET)))
         
@@ -34,8 +43,11 @@ class Tile(Drawable):
             surf = pygame.Surface(self.get_collision_rect().size, pygame.SRCALPHA)
             if self.property == 0:
                 color = (173, 216, 230, 100)
+
+            elif self.property == 2:
+                color = (0,0,0,200)
             else:
-                color = (140, 216, 255, 180)
+                color = (140, 170, 255, 200)
             surf.fill(color)
             drawSurf.blit(surf, list(map(int, self.position - Drawable.CAMERA_OFFSET)))
 

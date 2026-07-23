@@ -15,8 +15,9 @@ def load_room(room):
 # Dictionary of rooms mapped to their builder functions
 ## Entries to this dictionary will be appended after saving a room's data in the level editor
 room_data = {
-    'mid_1' : mid_1,
-    'mid_s1' : mid_s1,
+    'mid_1'     : mid_1,
+    'mid_s1'    : mid_s1,
+    'ice_1'     : ice_1,
 
 
 }

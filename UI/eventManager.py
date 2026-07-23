@@ -24,7 +24,8 @@ class EventManager(object):
 
                 #   Action Commands
                 'interact': False,
-                'attack1': False,
+                'attack1': False, # shooting
+                'attack2': False, # boosting
                 'special': False,
                 'evasive': False,
                 'space': False,
@@ -52,6 +53,11 @@ class EventManager(object):
             self.axis_right_active = False
             self.axis_up_active = False
             self.axis_down_active = False
+
+            #   Buffer data
+            self.buffing = False
+            self.buffer_timer = 0.0
+            self.buff_time = 0.5
         
         def init(self):
             """Prepare for takeoff!!"""
@@ -77,6 +83,10 @@ class EventManager(object):
             if action in self.actions:
                 self.actions[action] = False
 
+        def is_buffing(self) -> bool:
+            """Return True if buffering"""
+            return self.buffing
+        
         def is_active(self, action) -> None:
             """Check if an action is active"""
             if action in self.actions:
@@ -96,12 +106,23 @@ class EventManager(object):
             for action in self.actions:
                 self.actions[action] = False
 
+        def buffer_input(self, buff_time = 0.2) -> None:
+            """Buffer the input"""
+            self.buffing = True
+            self.buff_time = buff_time
+            return
+        
         def update_buffer(self, seconds) -> None:
             """Update the buffer value for certain inputs such as moving through menus"""
-            return
+            self.buffer_timer += seconds
+            if self.buffer_timer >= self.buff_time:
+                self.buffing = False
+                self.buffer_timer = 0.0
 
         def main(self, print_events = False) -> bool:
-            """Get events from the pygame event queue and interpret them"""
+            """Get events from the pygame event queue and interpret them.
+            Return True to continue the game.
+            Return False to quit the game."""
             if self.quit:
                 return False
             
@@ -109,6 +130,7 @@ class EventManager(object):
                 if print_events:
                     print(ev, end="\n\n")
 
+                #   Check for High-priority events
                 if ev.type == QUIT:
                     return False
                 
@@ -140,6 +162,8 @@ class EventManager(object):
                     
                     elif ev.key == K_x:
                         self.activate('attack1')
+                        self.activate('attack2')
+
 
                     elif ev.key == K_v:
                         self.activate('evasive')
@@ -169,6 +193,8 @@ class EventManager(object):
                     
                     elif ev.key == K_x:
                         self.deactivate('attack1')
+                        self.deactivate('attack2')
+                        
 
                     elif ev.key == K_LEFT:
                         self.deactivate('motion_left')
@@ -210,6 +236,8 @@ class EventManager(object):
                     
                     elif ev.button == 3:  # Y Button
                         self.activate('attack1')
+                        self.activate('attack2')
+
                     
                     elif ev.button == 0:  # A Button
                         self.activate('evasive')
@@ -227,6 +255,8 @@ class EventManager(object):
                     
                     elif ev.button == 3:  # Y Button
                         self.deactivate('attack1')
+                        self.deactivate('attack2')
+
                     
                     elif ev.button == 0:  # A Button
                         self.deactivate('evasive')

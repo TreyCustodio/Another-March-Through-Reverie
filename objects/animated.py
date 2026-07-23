@@ -31,12 +31,12 @@ class State(object):
         self.frames = {}
         
 
-    def load_frames(self, shrink = False):
+    def load_frames(self, shrink = False, factor = 1.1):
         for i in range(self.num_frames):
             if shrink:
                 img = SM.getSprite(self.file_name, (i, self.row))
                 w, h = img.get_size()
-                img = transform.scale(img, (w // (1.1), h // (1.1)))
+                img = transform.scale(img, (w // (factor), h // (factor)))
                 self.frames[i] = img
                 continue
             

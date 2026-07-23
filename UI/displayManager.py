@@ -2,7 +2,7 @@ import os
 from pygame import transform, Surface, Rect, SRCALPHA, font
 from globals import SCREEN_SIZE, UPSCALED, SCALE_FACTOR, vec
 from objects import Drawable, Black, Fading, Room, Intro, RoomManager, Name,\
-    Mid_1, Mid_S1, Und_1
+    Mid_1, Mid_S1, Ice_1
 
 from UI import EventManager, AudioManager, Title
 
@@ -11,7 +11,6 @@ EM = EventManager.getInstance()
 AM = AudioManager.getInstance()
 RM = RoomManager()
 TITLE = Title()
-    
 
 
 class DisplayManager(object):
@@ -326,8 +325,8 @@ class DisplayManager(object):
             TITLE = None
 
             # RM.set_next_room(Und_1)
-            # RM.set_next_room(Mid_1)
-            RM.set_next_room(Mid_S1, vec(20, UPSCALED[1] - 64 - 48))
+            RM.set_next_room(Mid_1, vec(64, 360))
+            # RM.set_next_room(Mid_S1, vec(20, UPSCALED[1] - 64 - 48))
 
 
 

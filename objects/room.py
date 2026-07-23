@@ -51,7 +51,6 @@ class Room(object):
     def __init__(self, bgm="02", vol=2, name = "default_room", size = vec(UPSCALED[0] * 20, UPSCALED[1]),
                  player_position = vec(0,0)):
         
-        
         self.name = name
         self.size = size
         self.player = PlayerLoader.get_player()
@@ -207,36 +206,40 @@ class Room(object):
                 #   Ignore Collision
                 if getattr(t, "property", 0) == 0:
                     continue
-                
+
                 #   Check if the player collides
-                tile_rect = Rect(t.position[0], t.position[1], t.image.get_width(), t.image.get_height())
+                # tile_rect = Rect(t.position[0], t.position[1], t.image.get_width(), t.image.get_height())
+                tile_rect = t.get_collision_rect()
                 if not player_rect.colliderect(tile_rect):
                     continue
-                
-                
+
                 #   Check if player is colliding from above (landing on tile)
                 if player_rect.bottom >= tile_rect.top and tile_rect.top >= self.player.position[1]:
-                    if self.player.airborn and not EM.is_active("interact"):
-                        self.player.land()
-                    self.player.position[1] = tile_rect.top - self.player.get_height()
+                    if (self.player.airborn or self.player.jumping):
+                        self.player.land(tile_rect.top)
                     break
                 
                 #   Check if player is colliding from below (touching ceiling)
-                elif player_rect.top <= tile_rect.bottom and tile_rect.top <= self.player.position[1]:
+                elif player_rect.top >= tile_rect.bottom and tile_rect.top <= self.player.position[1]:
                     EM.deactivate('interact')
+                    print(tile_rect.bottom)
                     self.player.position[1] = tile_rect.bottom + 2
+                    print("Ceil")
                     break
 
                 #   Prevent horizontal movement through solid tiles
                 else:
-                    if self.player.vel[0] > 0:
-                        self.player.position[0] = tile_rect.left - self.player.get_width()
-                        self.player.vel[0] = 0
+                    if player_rect.right >= tile_rect.left and self.player.position[0] <= tile_rect.right:
+                        print("Right")
+                        self.player.block()
+                        self.player.position[0] = tile_rect.right
+
                         break
 
-                    if self.player.vel[0] < 0:
-                        self.player.position[0] = tile_rect.right
-                        self.player.vel[0] = 0
+                    elif player_rect.left <= tile_rect.right and self.player.position[0] >= tile_rect.left:
+                        self.player.position[0] = tile_rect.left - self.player.get_width()
+                        print("Left")
+                        self.player.block()
                         break
             
             #   Handle Collision with Enemies
@@ -283,7 +286,7 @@ class Room(object):
                         break
 
             #   (4) Interact with an object #
-            if EM.is_active('interact') and not self.player.airborn:
+            if EM.is_active('interact') and (not self.player.airborn and not self.player.jumping):
                 #   Check if the player can interact with any objects
                 for n in self.npcs:
                     if self.player.get_collision_rect().colliderect(n.get_interaction_rect()):
@@ -293,7 +296,6 @@ class Room(object):
                 
                 
                 self.player.handle_events()
-            
             
             #   Have the player handle events   #
             else:
@@ -845,8 +847,14 @@ class Mid_S1(Room):
     def load(self):
         """Load the room's assets by calling the builder function"""
         load_room(self)
+
+        #   Middleground entrance
         self.doors[0].set_next_room(Mid_1)
         self.doors[0].set_exit_position(vec((UPSCALED[0] * 12) - 64, 500 - 64 - self.player.get_height()))
+
+        #   Ice Entrance
+        self.doors[1].set_next_room(Ice_1)
+        self.doors[1].set_exit_position(vec(16, 500 - 64 - self.player.get_height()))
 
             
     def play_bgm(self):
@@ -887,48 +895,29 @@ class Mid_S1(Room):
 
 
 # --- Underground Ice 1 --- #
-class Und_1(Room):
-    def __init__(self):
+class Ice_1(Room):
+    def __init__(self, player_position = vec(0,0)):
         # super().__init__(bgm="07")
-        super().__init__(bgm="07")
+        super().__init__(bgm="07", name="ice_1", size = vec(UPSCALED[0] * 12, 500),
+                         player_position=player_position)
 
-        #   Art #
-        bk = Drawable(vec(0,0), os.path.join("mountains_Lesiakower.png"))
-        bk.image = transform.scale(bk.image, (640 // 2, 427 // 2))
-        self.background = [bk]
-
-        #   Camera  #
-        # Drawable.updateOffsetPos(self.player.cam_pos, self.size)
-
-        #   Tiles   #
-        #   Need to only draw tiles within the camera's view and the player's path
-        self.tileset = "ice.png"
-        self.tiles = []
-
-        for x in range(0, int(self.size[0]), 16):
-            for y in range(int(self.floor) + 16, int(self.size[1]), 16):
-                self.tiles += [
-                    Tile(vec(x, y), self.tileset, (0,0))
-                ]
-
-            self.tiles += [
-                Tile(vec(x, self.floor-16), self.tileset, (2,0)),
-                Tile(vec(x, self.floor), self.tileset, (2,1))
-                ]
-        
-       
         self.enemies = [
             Raven(vec(16*8, self.floor - 18))
         ]
         self.player.set_visible()
-    
+
+    def load(self):
+        load_room(self)
+        self.doors[0].set_next_room(Mid_S1)
+        self.doors[0].set_exit_position(vec(UPSCALED[0] * 2 - 64, UPSCALED[1] - 64 - self.player.get_height()))
+        
     def play_bgm(self):
-        AM.play_ost(self.bgm, volume=self.bgm_volume, play_drums=False, play_intro = True)
+        AM.play_ost(self.bgm, volume=self.bgm_volume, play_drums=False, play_intro = False)
         self.playing_bgm = True
 
     def handle_events(self):
         super().handle_events()
         #   Test Dialogue   #
         if EM.perform_action('space'):
-            txt = "Greetings.&&\nWelcome to reverie.$$It's been a while,\nhuh?$$Today I've got a pocket\nfull of chimp change.$$Glorious day."
+            txt = "Pretty good track, eh?"
             self.display_text(txt, row=0)

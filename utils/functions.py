@@ -16,9 +16,11 @@ def mid_1(obj):
 
 
     obj.doors += [
-        Door(vec(obj.size[0],0), obj.tileset, (0,0), size = vec(16, obj.size[1]), property = 3),
+        Door(vec(obj.size[0],0), obj.tileset, (0,1), size = vec(16, obj.size[1]), property = 3),
     ]
+
     
+
     for x in range(0, int(obj.size[0]), 16):
         #   Black Tiles (0,0)   #
         for y in range(int(obj.size[1]), int(obj.size[1] - 64), -16):
@@ -31,11 +33,12 @@ def mid_1(obj):
             Tile(vec(x, obj.size[1]- 80), obj.tileset, (2,0), property=0),
             Tile(vec(x, obj.size[1] - 64), obj.tileset, (2,1), property=1)
             ]
-    
-    for y in range(0, int(obj.size[1])):
-        obj.tiles += [
-            Tile(vec(-16, y), obj.tileset, (0,1), property=1)
+
+    #   Western Edge
+    obj.tiles += [
+        Tile(vec(-8,0), obj.tileset, (0,0), size = vec(16, obj.size[1]), property=2)
         ]
+    
 
 def mid_s1(rm):
     rm.background = [
@@ -53,6 +56,7 @@ def mid_s1(rm):
     # for y in range(0, int(rm.size[1]), 16):
     rm.doors += [
         Door(vec(-16,0), rm.tileset, (0,0), size = vec(16, rm.size[1]), property = 3),
+        Door(vec(rm.size[0],0), rm.tileset, (0,0), size = vec(16, rm.size[1]), property = 3),
     ]
 
     #   Ceiling #
@@ -129,4 +133,37 @@ def mid_s1(rm):
         Tile(vec(rm.size[0] - 48, rm.size[1] - 16), rm.tileset, (0,0), property=0),
     ]
 
+
+
+
+def ice_1(obj):
+    obj.background = [
+        Drawable(vec(0,0), os.path.join("mountains_Lesiakower.png"))
+    ]
+    
+    obj.tileset = "ice.png"
+    obj.tiles = []
+
+
+    obj.doors += [
+        Door(vec(-16,0), obj.tileset, (0,0), size = vec(16, obj.size[1]), property = 3),
+    ]
+    
+    for x in range(0, int(obj.size[0]), 16):
+        #   Black Tiles (0,0)   #
+        for y in range(int(obj.size[1]), int(obj.size[1] - 64), -16):
+            obj.tiles += [
+                    Tile(vec(x, y), obj.tileset, (0,0))
+                ]
+        
+        #   Red ground (2,1) + (2,0)    #
+        obj.tiles += [
+            Tile(vec(x, obj.size[1]- 80), obj.tileset, (2,0), property=0),
+            Tile(vec(x, obj.size[1] - 64), obj.tileset, (2,1), property=1)
+            ]
+    
+    for y in range(0, int(obj.size[1])):
+        obj.tiles += [
+            Tile(vec(-16, y), obj.tileset, (0,1), property=1)
+        ]
     return
