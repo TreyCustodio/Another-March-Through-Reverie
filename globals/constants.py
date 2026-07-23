@@ -9,6 +9,8 @@ SCREEN_SIZE = vec(320,240)
 #   Universal Upscale Value -- all images will be scaled to this value  #
 SCALE_FACTOR = 1
 
+PLAYER_SCALE = 1.15
+
 #   Upscaled Screen Size    #
 UPSCALED = SCREEN_SIZE * SCALE_FACTOR
 

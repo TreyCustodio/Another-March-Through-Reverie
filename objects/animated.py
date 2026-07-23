@@ -2,7 +2,7 @@ from pygame import transform
 from os import path
 
 from . import Drawable
-from globals import vec
+from globals import vec, PLAYER_SCALE
 from UI import SpriteManager
 
 SM = SpriteManager.getInstance()
@@ -31,12 +31,12 @@ class State(object):
         self.frames = {}
         
 
-    def load_frames(self, shrink = False, factor = 1.1):
+    def load_frames(self, shrink = False):
         for i in range(self.num_frames):
             if shrink:
                 img = SM.getSprite(self.file_name, (i, self.row))
                 w, h = img.get_size()
-                img = transform.scale(img, (w // (factor), h // (factor)))
+                img = transform.scale(img, (w // (PLAYER_SCALE), h // (PLAYER_SCALE)))
                 self.frames[i] = img
                 continue
             

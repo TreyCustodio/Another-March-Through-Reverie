@@ -1,8 +1,8 @@
-from globals import vec, SCREEN_SIZE, UPSCALED
+from globals import vec, SCREEN_SIZE, UPSCALED, PLAYER_SCALE
 from . import Drawable
 
-PLAYER_WIDTH = int(48 * 1.1)
-PLAYER_HEIGHT = int(48 * 1.1)
+PLAYER_WIDTH = int(48 * PLAYER_SCALE)
+PLAYER_HEIGHT = int(48 * PLAYER_SCALE)
 
 class Camera:
     """The Camera"""

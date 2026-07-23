@@ -39,6 +39,8 @@ BASE_HEIGHT = 48
     (6) Smooth Animation (criminal)
         (a) Implement aerial animations
         (b) Create aerial shooting animation
+
+    (7) Have camera smoothly shift ahead of you so that you can see where you're going
 """
 
 

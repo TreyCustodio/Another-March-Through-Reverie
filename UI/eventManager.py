@@ -46,7 +46,7 @@ class EventManager(object):
             self.quit = False
             
             #   Analog stick deadzone
-            self.deadzone = 0.2
+            self.deadzone = 0.6
             self.down_deadzone = 0.8
             self.up_deadzone = 0.8
             self.axis_left_active = False
