@@ -3,7 +3,7 @@ import pygame
 
 from pygame import font, Rect, transform
 
-from globals import vec, GRAVITY, UPSCALED
+from globals import vec, GRAVITY, UPSCALED, PLAYER_SCALE
 from UI import EventManager, AudioManager, SpriteManager
 from . import Drawable, State, Player_State, Animated
 from .camera import Camera
@@ -15,8 +15,9 @@ EM = EventManager.getInstance()
 AM = AudioManager.getInstance()
 SM = SpriteManager.getInstance()
 
-BASE_WIDTH = 48
-BASE_HEIGHT = 48
+BASE_WIDTH = (48 * PLAYER_SCALE)
+BASE_HEIGHT = (48 * PLAYER_SCALE)
+
 """
     (1) Fix Collision Rects
 
@@ -43,7 +44,6 @@ BASE_HEIGHT = 48
     (7) Have camera smoothly shift ahead of you so that you can see where you're going
 """
 
-
 class PlayerLoader:
     """Use this class to ensure that only one player is ever loaded"""
     _INSTANCE = None
@@ -55,11 +55,6 @@ class PlayerLoader:
 
         return cls._INSTANCE
     
-
-# class Camera:
-#     """Determines what the player sees"""
-#     #   (1) KEEP THE WEAVER CENTERED HORIZONTALLY
-
 class Player(Drawable):
     def __init__(self, position=vec(0,0)):
         super().__init__(position, file_name="samus.png", offset=(0,0))
@@ -113,34 +108,6 @@ class Player(Drawable):
             'hurt_right': Player_State("weaver_jump.png", row = 2, starting_frame = 0, fps = 64, num_frames = 13, loop=True, loop_start = 5, loop_end = 8, loop_fps=12),
             'hurt_left': Player_State("weaver_jump.png", row = 3, starting_frame = 0, fps = 64, num_frames = 13, loop=True, loop_start = 7, loop_end = 8, loop_fps=12),
         }
-
-        # self.states = {
-        #     # state: [file_name, starting_frame, row, fps, nFrames]
-        #     'idle': State("weaver.png", starting_frame=0, row=0, fps=16, num_frames=48),
-        #     'idle_right': State("weaver.png", 0, 0, 16, 48),
-        #     'idle_left': State("weaver.png", 0, 1, 16, 48),
-
-        #     'walking_right': State(file_name="weaver_walk.png", starting_frame=0, row=0, fps=walk_fps, num_frames=10),
-        #     'walking_left': State("weaver_walk.png", 0, 0, walk_fps, 10, flip_x=True),
-
-        #     'running_right': State("weaver_run.png", 0, 0, run_fps, 9, flip_x=False),
-        #     'running_left': State("weaver_run.png", 0, 0, run_fps, 9, flip_x=True),
-
-        #     'crouching_right': State("weaver_crouch.png", 0, 0, 32, 11, loop=True, loop_start = 3, loop_end=5, loop_fps = 32, flip_x=False),
-        #     'crouching_left': State("weaver_crouch.png", 0, 0, 32, 11, loop=True, loop_start = 3, loop_end=5, loop_fps = 32, flip_x=True),
-
-        #     'shooting_right': State("weaver_shot.png", 0, 0, 64, 12, loop = True, loop_start = 3, loop_end = 8, loop_fps= 64, flip_x=False),
-        #     'shooting_left': State("weaver_shot.png", 0, 0, 64, 12, loop=True, loop_start = 3, loop_end = 8, loop_fps = 64, flip_x=True),
-
-        #     'hovering_right': State("weaver_jump.png", row = 0, starting_frame = 0, fps = 64, num_frames = 13, loop=True, loop_start = 5, loop_end = 8, loop_fps=12),
-        #     'hovering_left': State("weaver_jump.png", row = 1, starting_frame = 0, fps = 64, num_frames = 13, loop=True, loop_start = 7, loop_end = 8, loop_fps=12),
-
-        #     'flying_right': State("weaver_jump.png", row = 2, starting_frame = 0, fps = 64, num_frames = 13, loop=True, loop_start = 5, loop_end = 8, loop_fps=12),
-        #     'flying_left': State("weaver_jump.png", row = 3, starting_frame = 0, fps = 64, num_frames = 13, loop=True, loop_start = 7, loop_end = 8, loop_fps=12),
-
-        #     'aerial_shot_right': State("weaver_shot.png", 0, 0, 64, 12, loop = True, loop_start = 3, loop_end = 8, loop_fps= 64, flip_x=False),
-        #     'aerial_shot_left': State("weaver_shot.png", 0, 0, 64, 12, loop=True, loop_start = 3, loop_end = 8, loop_fps = 64, flip_x=True),
-        # }
         
         for state in self.states:
             self.states[state].load_frames(shrink=True)
@@ -205,13 +172,13 @@ class Player(Drawable):
         self.attacking = False
         self.shot_ready = True
         self.cooling_down = False
+        self.grounded = False
         self.jumping = False
         self.airborn = False
         self.gaining = False
         self.boosting = False
         self.idle = True
         self.crouching = False
-        self.grounded = True  # True when player is on ground
         self.colliding = False
         self.visible = False # If False, the player is not considered in the engine
         self.vulnerable = True
@@ -581,6 +548,8 @@ class Player(Drawable):
             self.position[1] = tile_top - height
         else:
             self.position[1] = tile_top - self.get_height()
+
+        self.grounded = True
         return
             
     def damage(self, enemy):
@@ -1159,6 +1128,7 @@ class Player(Drawable):
                 self.vel[1] += self.drop_acceleration * seconds
             elif EM.is_active('motion_up') and not EM.is_active('motion_down'):
                 self.vel[1] -= self.jump_acceleration * seconds
+            return
 
         elif self.jumping:
             if EM.is_active('interact'):
@@ -1169,7 +1139,11 @@ class Player(Drawable):
                 else:
                     self.vel[1] -= self.jump_acceleration * seconds
             self.vel[1] += GRAVITY * seconds
-        return
+            return
+
+        # elif not self.grounded:
+        #     self.vel[1] += GRAVITY * seconds
+        
 
     def update_horizontal(self, seconds):
         """Update the player's horizontal (x axis) velocity"""
@@ -1200,6 +1174,11 @@ class Player(Drawable):
         self.update_horizontal(seconds)
         
         #   Set Position    #
+        delta_x = self.vel[0] * seconds
+        # if delta x >= 0 then calculate right collision first
+        # check for collision
+        # only move the amount that is not colliding with a wall
+        delta_y = self.vel[1] * seconds
         self.position += self.vel*seconds
 
     def update_cooldown(self, seconds):
