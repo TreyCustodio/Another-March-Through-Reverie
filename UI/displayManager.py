@@ -325,8 +325,8 @@ class DisplayManager(object):
             TITLE = None
 
             # RM.set_next_room(Und_1)
-            RM.set_next_room(Mid_1, vec(64, 360))
-            # RM.set_next_room(Mid_S1, vec(20, UPSCALED[1] - 64 - 48))
+            # RM.set_next_room(Mid_1, vec(64, 360))
+            RM.set_next_room(Mid_S1, vec(20, UPSCALED[1] - 64 - 48))
 
 
 

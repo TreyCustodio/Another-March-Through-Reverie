@@ -138,6 +138,7 @@ class Player(Drawable):
         self.camera = Camera(p)
 
         #   Physics Variables   #
+        self.delta_x = 0
         self.hp = 5
         self.max_hp = 5
         self.speed = 75
@@ -224,6 +225,14 @@ class Player(Drawable):
             return Rect((self.position[0], self.position[1]), (self.get_width(), self.get_height()-9))
 
         return Rect((self.position[0], self.position[1]), (self.get_width(), self.get_height()))
+
+    def get_x_collision(self) -> Rect:
+        """Return the x collision rect"""
+        return Rect((self.position[0] + 3, self.position[1] + 14), (43, 21))
+
+    def get_y_collision(self) -> Rect:
+            """Return the y collision rect"""
+            return Rect((self.position[0], self.position[1]), (self.get_width(), self.get_height()))
 
     def get_hit_box(self) -> Rect:
         """Return the player's hit box"""
@@ -635,11 +644,7 @@ class Player(Drawable):
         for offset in outline_offsets:
             drawSurf.blit(outline_surface, (base_pos[0] + offset[0], base_pos[1] + offset[1]))
         
-        #   Display the collision rect  #
-        if draw_rect:
-            rect = self.get_collision_rect()
-            rect = rect.move(-Drawable.CAMERA_OFFSET[0], -Drawable.CAMERA_OFFSET[1])
-            pygame.draw.rect(drawSurf, (255, 20, 20), rect, 1)
+       
 
         #   Display the velocity    #
         velocity = str(round(self.vel[0], 2))
@@ -676,6 +681,30 @@ class Player(Drawable):
 
         #     drawSurf.blit(img, list(map(int, self.position - pos_offset - Drawable.CAMERA_OFFSET)))
 
+         #   Display the collision rect  #
+        if draw_rect:
+            # rect = self.get_collision_rect()
+            # rect = rect.move(-Drawable.CAMERA_OFFSET[0], -Drawable.CAMERA_OFFSET[1])
+            # pygame.draw.rect(drawSurf, (255, 20, 20), rect, 1)
+            
+            
+            #   X Collision #
+            rect_x = self.get_x_collision()
+            rect_x = rect_x.move(-Drawable.CAMERA_OFFSET[0], -Drawable.CAMERA_OFFSET[1])
+
+            #   X Collision + Delta #
+            delta_x = self.get_x_collision()
+            if self.vel[0] >= 0:
+                delta_x.width += self.delta_x
+            else:
+                delta_x.width += self.delta_x
+                delta_x.left -= int(self.delta_x)
+            delta_x = delta_x.move(-Drawable.CAMERA_OFFSET[0], -Drawable.CAMERA_OFFSET[1])
+            
+            pygame.draw.rect(drawSurf, (199, 199, 81, 174), delta_x, 0)
+            pygame.draw.rect(drawSurf, (48, 199, 81, 174), rect_x, 0)
+
+            
     
     # ===================================
 
@@ -1174,10 +1203,14 @@ class Player(Drawable):
         self.update_horizontal(seconds)
         
         #   Set Position    #
-        delta_x = self.vel[0] * seconds
+        self.delta_x = self.vel[0] * seconds
         # if delta x >= 0 then calculate right collision first
         # check for collision
         # only move the amount that is not colliding with a wall
+        
+        # x_collision_path = x_collision_rect + length of delta_x
+        x_collision_path = None
+        
         delta_y = self.vel[1] * seconds
         self.position += self.vel*seconds
 

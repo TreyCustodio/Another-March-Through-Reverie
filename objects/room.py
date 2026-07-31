@@ -6,7 +6,7 @@ from pygame import Surface, SRCALPHA, Rect, draw, transform
 from . import PlayerLoader, Drawable, TextManager, HudManager, Interactable, GlowingBox, TextShadow,\
 Weegee, PauseEngine
 from .enemy import *
-from globals import SCREEN_SIZE, UPSCALED, SCALE_FACTOR, vec, SPEECH
+from globals import SCREEN_SIZE, UPSCALED, SCALE_FACTOR, vec, SPEECH, FLAGS
 from UI import SpriteManager, AudioManager, EventManager
 from utils import load_room
 
@@ -843,7 +843,9 @@ class Mid_S1(Room):
         self.unloaded_enemies = []
 
         self.player.set_visible()
-    
+
+        self.with_marley = False
+
     def load(self):
         """Load the room's assets by calling the builder function"""
         load_room(self)
@@ -856,6 +858,13 @@ class Mid_S1(Room):
         self.doors[1].set_next_room(Ice_1)
         self.doors[1].set_exit_position(vec(16, 500 - 64 - self.player.get_height()))
 
+        if not FLAGS[1]:
+            self.with_marley = True
+            self.text_int = 1
+            self.player.lock_keys()
+
+        
+
             
     def play_bgm(self):
         AM.play_ost(self.bgm, volume=self.bgm_volume,
@@ -865,6 +874,131 @@ class Mid_S1(Room):
     def handle_events(self):
         super().handle_events()
 
+    def update(self, seconds, play_music=True, update_bgm=True):
+        # while not FLAGS[1]:
+        #     if not self.speaking:
+        #         self.display_text(SPEECH["marley_"])
+        # while not FLAGS[1]:
+        #     if not self.speaking:
+        #         self.display_text(SPEECH["marley_" + str(self.text_int)])
+        #         self.text_int += 1
+
+        if self.with_marley or not FLAGS[1]:
+            if self.text_int == 1:
+                if not self.speaking:
+                    AM.fadeout_bgm(1000)
+                    self.display_text(SPEECH["marley_1"], 0, sound=2, row=2)
+                    self.text_int += 1
+
+            elif self.text_int == 2:
+                if not self.speaking:
+                    self.display_text(SPEECH["marley_2"])
+                    self.text_int += 1
+
+            elif self.text_int == 3:
+                if not self.speaking:
+                    self.display_text(SPEECH["marley_3"], row = 2, sound=2)
+                    self.text_int += 1
+
+            elif self.text_int == 4:
+                if not self.speaking:
+                    self.display_text(SPEECH["marley_4"])
+                    self.text_int += 1
+
+            elif self.text_int == 5:
+                if not self.speaking:
+                    self.display_text(SPEECH["marley_5"], flag = 1, sound = 2)
+                    self.text_int += 1
+
+            elif self.text_int == 5:
+                if not self.speaking:
+                    self.display_text(SPEECH["marley_5"], flag = 1, sound = 2)
+                    self.text_int += 1
+
+            elif self.text_int == 6:
+                if not self.speaking:
+                    self.display_text(SPEECH["marley_6"], row = 2, sound = 2)
+                    self.text_int += 1
+
+            elif self.text_int == 7:
+                if not self.speaking:
+                    self.display_text(SPEECH["marley_7"])
+                    self.text_int += 1
+
+            elif self.text_int == 8:
+                if not self.speaking:
+                    self.display_text(SPEECH["marley_8"], row=2, sound = 2)
+                    self.text_int += 1
+
+            elif self.text_int == 9:
+                if not self.speaking:
+                    self.display_text(SPEECH["marley_9"])
+                    self.text_int += 1
+
+            elif self.text_int == 10:
+                if not self.speaking:
+                    self.display_text(SPEECH["marley_10"], row = 2, sound=2)
+                    self.text_int += 1
+
+            elif self.text_int == 11:
+                if not self.speaking:
+                    self.display_text(SPEECH["marley_11"])
+                    self.text_int += 1
+
+            elif self.text_int == 12:
+                if not self.speaking:
+                    self.display_text(SPEECH["marley_12"], row = 2, sound=2)
+                    self.text_int += 1
+
+            elif self.text_int == 13:
+                if not self.speaking:
+                    self.display_text(SPEECH["marley_13"], flag=1, sound=2)
+                    self.text_int += 1
+
+            elif self.text_int == 14:
+                if not self.speaking:
+                    self.display_text(SPEECH["marley_14"])
+                    self.text_int += 1
+
+
+            elif self.text_int == 15:
+                if not self.speaking:
+                    self.display_text(SPEECH["marley_15"], row=2, sound=2)
+                    self.text_int += 1
+
+            elif self.text_int == 16:
+                if not self.speaking:
+                    self.display_text(SPEECH["marley_16"])
+                    self.text_int += 1
+
+            elif self.text_int == 17:
+                if not self.speaking:
+                    AM.play_ost("15", play_drums=False)
+                    self.display_text(SPEECH["marley_17"], row=2, sound=2)
+                    self.text_int += 1
+
+            elif self.text_int == 18:
+                if not self.speaking:
+                    self.display_text(SPEECH["marley_18"])
+                    self.text_int += 1
+
+            elif self.text_int == 19:
+                if not self.speaking:
+                    self.display_text(SPEECH["marley_19"], flag=1, sound=2)
+                    self.text_int += 1
+            
+
+            else:
+                if not self.speaking:
+                    self.speaking = False
+                    self.with_marley = False
+                    FLAGS[1] = True
+                    self.player.unlock_keys()
+
+
+        super().update(seconds, False, update_bgm)
+        
+                
 
 
 
